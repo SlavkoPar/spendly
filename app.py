@@ -59,7 +59,8 @@ def login():
             flash("Invalid email or password.", "error")
             return render_template("login.html")
 
-        session["user_id"] = user["id"]
+        session["user_id"]   = user["id"]
+        session["user_name"] = user["name"]
         return redirect(url_for("landing"))
 
     return render_template("login.html")
@@ -87,7 +88,38 @@ def logout():
 
 @app.route("/profile")
 def profile():
-    return "Profile page — coming in Step 4"
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    user = {
+        "name": "Demo User",
+        "email": "demo@spendly.com",
+        "initials": "DU",
+        "member_since": "January 2026",
+    }
+    stats = {
+        "total_spent": 406.24,
+        "transaction_count": 8,
+        "top_category": "Food",
+    }
+    transactions = [
+        {"date": "2026-06-14", "description": "Lunch out",        "category": "Food",          "amount": 18.75},
+        {"date": "2026-06-12", "description": "Charity donation", "category": "Other",         "amount": 15.00},
+        {"date": "2026-06-10", "description": "New trainers",     "category": "Shopping",      "amount": 89.99},
+        {"date": "2026-06-08", "description": "Cinema tickets",   "category": "Entertainment", "amount": 25.00},
+        {"date": "2026-06-05", "description": "Pharmacy",         "category": "Health",        "amount": 60.00},
+    ]
+    categories = [
+        {"name": "Food",          "total": 64.25},
+        {"name": "Bills",         "total": 120.00},
+        {"name": "Shopping",      "total": 89.99},
+        {"name": "Health",        "total": 60.00},
+        {"name": "Entertainment", "total": 25.00},
+        {"name": "Transport",     "total": 32.00},
+        {"name": "Other",         "total": 15.00},
+    ]
+    return render_template("profile.html", user=user, stats=stats,
+                           transactions=transactions, categories=categories)
 
 
 @app.route("/expenses/add")
