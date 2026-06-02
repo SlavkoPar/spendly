@@ -60,7 +60,10 @@
 
         <!-- Transaction history -->
         <div class="profile-block">
-            <h2 class="block-title">Recent Transactions</h2>
+            <div class="block-title-row">
+                <h2 class="block-title">Recent Transactions</h2>
+                <a href="{{ url_for('add_expense') }}" class="btn-add-expense">+ Add Expense</a>
+            </div>
             <table class="transactions-table">
                 <thead>
                     <tr>
