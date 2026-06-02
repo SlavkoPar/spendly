@@ -83,6 +83,10 @@
                         <td class="amount-col">&#8377;{{ "%.2f"|format(t.amount) }}</td>
                         <td class="actions-col">
                             <a href="{{ url_for('edit_expense', id=t.id) }}" class="action-link">Edit</a>
+                            <form method="POST" action="/expenses/{{ t.id }}/delete" style="display:inline"
+                                  onsubmit="return confirm('Delete this expense?')">
+                                <button type="submit" class="btn-delete">Delete</button>
+                            </form>
                         </td>
                     </tr>
                     {% endfor %}
