@@ -2,6 +2,7 @@ import sqlite3
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from werkzeug.security import check_password_hash
 from database.db import get_db, init_db, seed_db, create_user, get_user_by_email
+from database.queries import get_user_by_id, get_summary_stats, get_recent_transactions, get_category_breakdown
 
 app = Flask(__name__)
 app.secret_key = "dev-secret-key"
@@ -91,33 +92,16 @@ def profile():
     if not session.get("user_id"):
         return redirect(url_for("login"))
 
-    user = {
-        "name": "Demo User",
-        "email": "demo@spendly.com",
-        "initials": "DU",
-        "member_since": "January 2026",
-    }
-    stats = {
-        "total_spent": 406.24,
-        "transaction_count": 8,
-        "top_category": "Food",
-    }
-    transactions = [
-        {"date": "2026-06-14", "description": "Lunch out",        "category": "Food",          "amount": 18.75},
-        {"date": "2026-06-12", "description": "Charity donation", "category": "Other",         "amount": 15.00},
-        {"date": "2026-06-10", "description": "New trainers",     "category": "Shopping",      "amount": 89.99},
-        {"date": "2026-06-08", "description": "Cinema tickets",   "category": "Entertainment", "amount": 25.00},
-        {"date": "2026-06-05", "description": "Pharmacy",         "category": "Health",        "amount": 60.00},
-    ]
-    categories = [
-        {"name": "Food",          "total": 64.25},
-        {"name": "Bills",         "total": 120.00},
-        {"name": "Shopping",      "total": 89.99},
-        {"name": "Health",        "total": 60.00},
-        {"name": "Entertainment", "total": 25.00},
-        {"name": "Transport",     "total": 32.00},
-        {"name": "Other",         "total": 15.00},
-    ]
+    user_id      = session["user_id"]
+    user_row     = get_user_by_id(user_id)
+    stats        = get_summary_stats(user_id)
+    transactions = get_recent_transactions(user_id)
+    categories   = get_category_breakdown(user_id)
+
+    parts    = user_row["name"].split()
+    initials = (parts[0][0] + (parts[-1][0] if len(parts) > 1 else "")).upper()
+    user     = {**user_row, "initials": initials}
+
     return render_template("profile.html", user=user, stats=stats,
                            transactions=transactions, categories=categories)
 

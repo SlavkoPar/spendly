@@ -73,9 +73,9 @@ def seed_db():
         (user_id, 45.50,  "Food",          "2026-06-01", "Weekly groceries"),
         (user_id, 32.00,  "Transport",     "2026-06-02", "Monthly bus pass top-up"),
         (user_id, 120.00, "Bills",         "2026-06-03", "Electricity bill"),
-        (user_id, 60.00,  "Health",        "2026-06-05", "Pharmacy"),
+        (user_id, 20.00,  "Health",        "2026-06-05", "Pharmacy"),
         (user_id, 25.00,  "Entertainment", "2026-06-08", "Cinema tickets"),
-        (user_id, 89.99,  "Shopping",      "2026-06-10", "New trainers"),
+        (user_id, 69.99,  "Shopping",      "2026-06-10", "New trainers"),
         (user_id, 15.00,  "Other",         "2026-06-12", "Charity donation"),
         (user_id, 18.75,  "Food",          "2026-06-14", "Lunch out"),
     ]

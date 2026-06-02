@@ -21,7 +21,7 @@
         <div class="stats-row">
             <div class="stat-card">
                 <span class="stat-label">Total Spent</span>
-                <span class="stat-value">&pound;{{ "%.2f"|format(stats.total_spent) }}</span>
+                <span class="stat-value">&#8377;{{ "%.2f"|format(stats.total_spent) }}</span>
             </div>
             <div class="stat-card">
                 <span class="stat-label">Transactions</span>
@@ -51,7 +51,7 @@
                         <td class="date-col">{{ t.date }}</td>
                         <td>{{ t.description }}</td>
                         <td><span class="badge badge-{{ t.category | lower }}">{{ t.category }}</span></td>
-                        <td class="amount-col">&pound;{{ "%.2f"|format(t.amount) }}</td>
+                        <td class="amount-col">&#8377;{{ "%.2f"|format(t.amount) }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -65,10 +65,10 @@
                 {% for c in categories %}
                 <div class="category-row">
                     <span class="category-name">{{ c.name }}</span>
-                    <div class="progress-bar" style="--pct: {{ (c.total / stats.total_spent * 100) | round | int }}%">
+                    <div class="progress-bar" style="--pct: {{ c.pct }}%">
                         <div class="progress-fill"></div>
                     </div>
-                    <span class="category-total">&pound;{{ "%.2f"|format(c.total) }}</span>
+                    <span class="category-total">&#8377;{{ "%.2f"|format(c.amount) }}</span>
                 </div>
                 {% endfor %}
             </div>
