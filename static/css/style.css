@@ -901,3 +901,80 @@ a { color: inherit; text-decoration: none; }
     font-family: inherit;
 }
 .btn-delete:hover { text-decoration: underline; }
+
+.btn-edit {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--accent);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-family: inherit;
+}
+.btn-edit:hover { text-decoration: underline; }
+
+/* ------------------------------------------------------------------ */
+/* Edit Expense Modal                                                  */
+/* ------------------------------------------------------------------ */
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-overlay[hidden] { display: none; }
+
+.modal-box {
+    background: var(--paper-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    width: 50%;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.18);
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.75rem;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.modal-title {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    color: var(--ink);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--ink-muted);
+    cursor: pointer;
+    line-height: 1;
+    padding: 0.2rem 0.4rem;
+    font-family: inherit;
+}
+.modal-close:hover { color: var(--ink); }
+
+.modal-body {
+    padding: 1.75rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+@media (max-width: 700px) {
+    .modal-box { width: 92%; }
+}

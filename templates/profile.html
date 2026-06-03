@@ -82,7 +82,12 @@
                         <td><span class="badge badge-{{ t.category | lower }}">{{ t.category }}</span></td>
                         <td class="amount-col">&#8377;{{ "%.2f"|format(t.amount) }}</td>
                         <td class="actions-col">
-                            <a href="{{ url_for('edit_expense', id=t.id) }}" class="action-link">Edit</a>
+                            <button type="button" class="btn-edit"
+                                    data-id="{{ t.id }}"
+                                    data-amount="{{ t.amount }}"
+                                    data-category="{{ t.category }}"
+                                    data-date="{{ t.date }}"
+                                    data-description="{{ t.description or '' }}">Edit</button>
                             <form method="POST" action="/expenses/{{ t.id }}/delete" style="display:inline"
                                   onsubmit="return confirm('Delete this expense?')">
                                 <button type="submit" class="btn-delete">Delete</button>
@@ -112,5 +117,84 @@
 
     </div>
 </section>
+
+<!-- Edit Expense Modal -->
+<div class="modal-overlay" id="editModal" hidden>
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2 class="modal-title">Edit Expense</h2>
+            <button type="button" class="modal-close" id="modalClose">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form method="POST" id="editForm">
+                <div class="form-group">
+                    <label for="modal-amount">Amount (&#8377;)</label>
+                    <input type="number" id="modal-amount" name="amount" step="0.01" min="0.01"
+                           class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="modal-category">Category</label>
+                    <select id="modal-category" name="category" class="form-input">
+                        {% for cat in all_categories %}
+                        <option value="{{ cat }}">{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="modal-date">Date</label>
+                    <input type="date" id="modal-date" name="date" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="modal-description">Description
+                        <span class="field-optional">(optional)</span>
+                    </label>
+                    <input type="text" id="modal-description" name="description" maxlength="200"
+                           class="form-input" placeholder="e.g. Lunch at café">
+                </div>
+                <button type="submit" class="btn-submit">Save Changes</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var y = sessionStorage.getItem('editScrollY');
+    if (y !== null) {
+        window.scrollTo(0, parseInt(y, 10));
+        sessionStorage.removeItem('editScrollY');
+    }
+})();
+
+var modal = document.getElementById('editModal');
+var editForm = document.getElementById('editForm');
+
+document.querySelectorAll('.btn-edit').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        editForm.action = '/expenses/' + this.dataset.id + '/edit';
+        document.getElementById('modal-amount').value = this.dataset.amount;
+        document.getElementById('modal-category').value = this.dataset.category;
+        document.getElementById('modal-date').value = this.dataset.date;
+        document.getElementById('modal-description').value = this.dataset.description;
+        modal.hidden = false;
+    });
+});
+
+document.getElementById('modalClose').addEventListener('click', function () {
+    modal.hidden = true;
+});
+
+modal.addEventListener('click', function (e) {
+    if (e.target === modal) modal.hidden = true;
+});
+
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') modal.hidden = true;
+});
+
+editForm.addEventListener('submit', function () {
+    sessionStorage.setItem('editScrollY', window.scrollY);
+});
+</script>
 
 {% endblock %}

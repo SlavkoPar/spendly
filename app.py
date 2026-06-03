@@ -153,6 +153,7 @@ def profile():
         user=user, stats=stats, transactions=transactions, categories=categories,
         date_from=df_str, date_to=dt_str,
         preset_ranges=preset_ranges, active_preset=active_preset,
+        all_categories=CATEGORIES,
     )
 
 
