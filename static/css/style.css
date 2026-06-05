@@ -934,7 +934,7 @@ a { color: inherit; text-decoration: none; }
     background: var(--paper-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    width: 50%;
+    width: 60%;
     max-height: 80vh;
     display: flex;
     flex-direction: column;
@@ -977,4 +977,32 @@ a { color: inherit; text-decoration: none; }
 
 @media (max-width: 700px) {
     .modal-box { width: 92%; }
+}
+
+/* ------------------------------------------------------------------ */
+/* Utility                                                             */
+/* ------------------------------------------------------------------ */
+
+.form-inline { display: inline; }
+
+.btn-submit-danger {
+    width: 100%;
+    padding: 0.7rem;
+    background: var(--danger);
+    color: var(--paper);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-top: 0.5rem;
+}
+
+.btn-submit-danger:hover { background: #a93226; }
+
+.confirm-text {
+    margin-bottom: 1.25rem;
+    color: var(--ink-soft);
 }

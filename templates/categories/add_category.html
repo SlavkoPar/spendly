@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Add Category — Spendly{% endblock %}
+
+{% block content %}
+
+<section class="auth-section">
+    <div class="auth-container">
+
+        <div class="auth-header">
+            <h1 class="auth-title">Add Category</h1>
+            <p class="auth-subtitle">Create a new expense category</p>
+        </div>
+
+        <div class="auth-card">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% set cat, msg = messages[0] %}
+                <div class="auth-{{ cat }}">{{ msg }}</div>
+              {% endif %}
+            {% endwith %}
+
+            <form method="POST" action="{{ url_for('add_category') }}">
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" name="name" maxlength="100"
+                           class="form-input" placeholder="e.g. Groceries" required>
+                </div>
+                <div class="form-group">
+                    <label for="description">Description
+                        <span class="field-optional">(optional)</span>
+                    </label>
+                    <input type="text" id="description" name="description" maxlength="200"
+                           class="form-input" placeholder="e.g. Food and grocery shopping">
+                </div>
+                <button type="submit" class="btn-submit">Add Category</button>
+            </form>
+        </div>
+
+        <p class="auth-switch">
+            <a href="{{ url_for('categories') }}">Cancel — back to categories</a>
+        </p>
+
+    </div>
+</section>
+
+{% endblock %}

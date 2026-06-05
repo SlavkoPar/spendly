@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}Categories — Spendly{% endblock %}
+
+{% block content %}
+
+<section class="profile-section">
+    <div class="profile-inner">
+
+        <div class="profile-block">
+            <div class="block-title-row">
+                <h2 class="block-title">Categories</h2>
+                <button type="button" class="btn-add-expense" id="addCategoryBtn">+ Add Category</button>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% set cat, msg = messages[0] %}
+                <div class="auth-{{ cat }}">{{ msg }}</div>
+              {% endif %}
+            {% endwith %}
+
+            <table class="transactions-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th class="actions-col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cat in categories %}
+                    <tr>
+                        <td><span class="badge badge-{{ cat.name | lower }}">{{ cat.name }}</span></td>
+                        <td>{{ cat.description or '—' }}</td>
+                        <td class="actions-col">
+                            <button type="button" class="btn-edit"
+                                    data-id="{{ cat.id }}"
+                                    data-name="{{ cat.name }}"
+                                    data-description="{{ cat.description or '' }}">Edit</button>
+                            <form method="POST" action="/categories/{{ cat.id }}/delete" class="form-inline"
+                                  onsubmit="return confirm('Delete this category?')">
+                                <button type="submit" class="btn-delete">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</section>
+
+<!-- Add Category Modal -->
+<div class="modal-overlay" id="addModal" hidden>
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2 class="modal-title">Add Category</h2>
+            <button type="button" class="modal-close" id="addModalClose">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form method="POST" action="{{ url_for('add_category') }}" id="addForm">
+                <div class="form-group">
+                    <label for="add-name">Name</label>
+                    <input type="text" id="add-name" name="name" maxlength="100"
+                           class="form-input" placeholder="e.g. Groceries" required>
+                </div>
+                <div class="form-group">
+                    <label for="add-description">Description
+                        <span class="field-optional">(optional)</span>
+                    </label>
+                    <input type="text" id="add-description" name="description" maxlength="200"
+                           class="form-input" placeholder="e.g. Food and grocery shopping">
+                </div>
+                <button type="submit" class="btn-submit">Add Category</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Category Modal -->
+<div class="modal-overlay" id="editModal" hidden>
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2 class="modal-title">Edit Category</h2>
+            <button type="button" class="modal-close" id="editModalClose">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form method="POST" id="editForm">
+                <div class="form-group">
+                    <label for="edit-name">Name</label>
+                    <input type="text" id="edit-name" name="name" maxlength="100"
+                           class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-description">Description
+                        <span class="field-optional">(optional)</span>
+                    </label>
+                    <input type="text" id="edit-description" name="description" maxlength="200"
+                           class="form-input" placeholder="e.g. Food and grocery shopping">
+                </div>
+                <button type="submit" class="btn-submit">Save Changes</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var y = sessionStorage.getItem('catScrollY');
+    if (y !== null) {
+        window.scrollTo(0, parseInt(y, 10));
+        sessionStorage.removeItem('catScrollY');
+    }
+})();
+
+var addModal  = document.getElementById('addModal');
+var editModal = document.getElementById('editModal');
+var editForm  = document.getElementById('editForm');
+
+document.getElementById('addCategoryBtn').addEventListener('click', function () {
+    addModal.hidden = false;
+});
+
+document.getElementById('addModalClose').addEventListener('click', function () {
+    addModal.hidden = true;
+});
+
+document.getElementById('editModalClose').addEventListener('click', function () {
+    editModal.hidden = true;
+});
+
+document.querySelectorAll('.btn-edit').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        editForm.action = '/categories/' + this.dataset.id + '/edit';
+        document.getElementById('edit-name').value        = this.dataset.name;
+        document.getElementById('edit-description').value = this.dataset.description;
+        editModal.hidden = false;
+    });
+});
+
+[addModal, editModal].forEach(function (modal) {
+    modal.addEventListener('click', function (e) {
+        if (e.target === modal) modal.hidden = true;
+    });
+});
+
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+        addModal.hidden  = true;
+        editModal.hidden = true;
+    }
+});
+
+document.getElementById('addForm').addEventListener('submit', function () {
+    sessionStorage.setItem('catScrollY', window.scrollY);
+});
+
+editForm.addEventListener('submit', function () {
+    sessionStorage.setItem('catScrollY', window.scrollY);
+});
+
+document.querySelectorAll('form[action*="/delete"]').forEach(function (f) {
+    f.addEventListener('submit', function () {
+        sessionStorage.setItem('catScrollY', window.scrollY);
+    });
+});
+</script>
+
+{% endblock %}

@@ -85,7 +85,7 @@
                             <button type="button" class="btn-edit"
                                     data-id="{{ t.id }}"
                                     data-amount="{{ t.amount }}"
-                                    data-category="{{ t.category }}"
+                                    data-category-id="{{ t.category_id }}"
                                     data-date="{{ t.date }}"
                                     data-description="{{ t.description or '' }}">Edit</button>
                             <form method="POST" action="/expenses/{{ t.id }}/delete" style="display:inline"
@@ -134,9 +134,9 @@
                 </div>
                 <div class="form-group">
                     <label for="modal-category">Category</label>
-                    <select id="modal-category" name="category" class="form-input">
+                    <select id="modal-category" name="category_id" class="form-input">
                         {% for cat in all_categories %}
-                        <option value="{{ cat }}">{{ cat }}</option>
+                        <option value="{{ cat.id }}">{{ cat.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -173,7 +173,7 @@ document.querySelectorAll('.btn-edit').forEach(function (btn) {
     btn.addEventListener('click', function () {
         editForm.action = '/expenses/' + this.dataset.id + '/edit';
         document.getElementById('modal-amount').value = this.dataset.amount;
-        document.getElementById('modal-category').value = this.dataset.category;
+        document.getElementById('modal-category').value = this.dataset.categoryId;
         document.getElementById('modal-date').value = this.dataset.date;
         document.getElementById('modal-description').value = this.dataset.description;
         modal.hidden = false;

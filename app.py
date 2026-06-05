@@ -4,8 +4,9 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from werkzeug.security import check_password_hash
 from database.db import get_db, init_db, seed_db, create_user, get_user_by_email
 from database.queries import (get_user_by_id, get_summary_stats, get_recent_transactions,
-                              get_category_breakdown, insert_expense, CATEGORIES,
-                              get_expense_by_id, update_expense, delete_expense)
+                              get_category_breakdown, get_all_categories,
+                              insert_expense, get_expense_by_id, update_expense, delete_expense,
+                              get_category_by_id, insert_category, update_category, delete_category)
 
 app = Flask(__name__)
 app.secret_key = "dev-secret-key"
@@ -143,6 +144,7 @@ def profile():
     stats        = get_summary_stats(user_id, df_str, dt_str)
     transactions = get_recent_transactions(user_id, date_from=df_str, date_to=dt_str)
     categories   = get_category_breakdown(user_id, df_str, dt_str)
+    all_cats     = get_all_categories()
 
     parts    = user_row["name"].split()
     initials = (parts[0][0] + (parts[-1][0] if len(parts) > 1 else "")).upper()
@@ -153,7 +155,7 @@ def profile():
         user=user, stats=stats, transactions=transactions, categories=categories,
         date_from=df_str, date_to=dt_str,
         preset_ranges=preset_ranges, active_preset=active_preset,
-        all_categories=CATEGORIES,
+        all_categories=all_cats,
     )
 
 
@@ -162,11 +164,13 @@ def add_expense():
     if not session.get("user_id"):
         return redirect(url_for("login"))
 
+    categories = get_all_categories()
+
     if request.method == "POST":
-        raw_amount  = request.form.get("amount", "").strip()
-        category    = request.form.get("category", "").strip()
-        raw_date    = request.form.get("date", "").strip()
-        description = request.form.get("description", "").strip() or None
+        raw_amount       = request.form.get("amount", "").strip()
+        category_id_str  = request.form.get("category_id", "").strip()
+        raw_date         = request.form.get("date", "").strip()
+        description      = request.form.get("description", "").strip() or None
 
         try:
             amount = float(raw_amount)
@@ -174,26 +178,34 @@ def add_expense():
                 raise ValueError
         except ValueError:
             flash("Amount must be a positive number.", "error")
-            return render_template("add_expense.html", categories=CATEGORIES,
+            return render_template("add_expense.html", categories=categories,
                                    form=request.form)
 
-        if category not in CATEGORIES:
+        try:
+            category_id = int(category_id_str)
+        except ValueError:
             flash("Please select a valid category.", "error")
-            return render_template("add_expense.html", categories=CATEGORIES,
+            return render_template("add_expense.html", categories=categories,
+                                   form=request.form)
+
+        valid_ids = {c["id"] for c in categories}
+        if category_id not in valid_ids:
+            flash("Please select a valid category.", "error")
+            return render_template("add_expense.html", categories=categories,
                                    form=request.form)
 
         try:
             datetime.strptime(raw_date, "%Y-%m-%d")
         except ValueError:
             flash("Please enter a valid date.", "error")
-            return render_template("add_expense.html", categories=CATEGORIES,
+            return render_template("add_expense.html", categories=categories,
                                    form=request.form)
 
-        insert_expense(session["user_id"], amount, category, raw_date, description)
+        insert_expense(session["user_id"], amount, category_id, raw_date, description)
         flash("Expense added.", "success")
         return redirect(url_for("profile"))
 
-    return render_template("add_expense.html", categories=CATEGORIES,
+    return render_template("add_expense.html", categories=categories,
                            form={}, today=date.today().isoformat())
 
 
@@ -206,11 +218,13 @@ def edit_expense(id):
     if expense is None:
         abort(404)
 
+    categories = get_all_categories()
+
     if request.method == "POST":
-        raw_amount  = request.form.get("amount", "").strip()
-        category    = request.form.get("category", "").strip()
-        raw_date    = request.form.get("date", "").strip()
-        description = request.form.get("description", "").strip() or None
+        raw_amount      = request.form.get("amount", "").strip()
+        category_id_str = request.form.get("category_id", "").strip()
+        raw_date        = request.form.get("date", "").strip()
+        description     = request.form.get("description", "").strip() or None
 
         try:
             amount = float(raw_amount)
@@ -219,26 +233,34 @@ def edit_expense(id):
         except ValueError:
             flash("Amount must be a positive number.", "error")
             return render_template("edit_expense.html", expense=expense,
-                                   categories=CATEGORIES, form=request.form)
+                                   categories=categories, form=request.form)
 
-        if category not in CATEGORIES:
+        try:
+            category_id = int(category_id_str)
+        except ValueError:
             flash("Please select a valid category.", "error")
             return render_template("edit_expense.html", expense=expense,
-                                   categories=CATEGORIES, form=request.form)
+                                   categories=categories, form=request.form)
+
+        valid_ids = {c["id"] for c in categories}
+        if category_id not in valid_ids:
+            flash("Please select a valid category.", "error")
+            return render_template("edit_expense.html", expense=expense,
+                                   categories=categories, form=request.form)
 
         try:
             datetime.strptime(raw_date, "%Y-%m-%d")
         except ValueError:
             flash("Please enter a valid date.", "error")
             return render_template("edit_expense.html", expense=expense,
-                                   categories=CATEGORIES, form=request.form)
+                                   categories=categories, form=request.form)
 
-        update_expense(id, session["user_id"], amount, category, raw_date, description)
+        update_expense(id, session["user_id"], amount, category_id, raw_date, description)
         flash("Expense updated.", "success")
         return redirect(url_for("profile"))
 
     return render_template("edit_expense.html", expense=expense,
-                           categories=CATEGORIES, form=dict(expense))
+                           categories=categories, form=dict(expense))
 
 
 @app.route("/expenses/<int:id>/delete", methods=["POST"])
@@ -252,6 +274,79 @@ def delete_expense_route(id):
 
     delete_expense(id, session["user_id"])
     return redirect(url_for("profile"))
+
+
+# ------------------------------------------------------------------ #
+# Categories                                                          #
+# ------------------------------------------------------------------ #
+
+@app.route("/categories")
+def categories():
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+    all_cats = get_all_categories()
+    return render_template("categories/list.html", categories=all_cats)
+
+
+@app.route("/categories/add", methods=["GET", "POST"])
+def add_category():
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        name        = request.form.get("name", "").strip()
+        description = request.form.get("description", "").strip() or None
+
+        if not name:
+            flash("Category name is required.", "error")
+            return redirect(url_for("categories"))
+
+        insert_category(session["user_id"], name, description)
+        flash("Category added.", "success")
+        return redirect(url_for("categories"))
+
+    return render_template("categories/add_category.html")
+
+
+@app.route("/categories/<int:id>/edit", methods=["GET", "POST"])
+def edit_category(id):
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    cat = get_category_by_id(id)
+    if cat is None:
+        abort(404)
+
+    if request.method == "POST":
+        name        = request.form.get("name", "").strip()
+        description = request.form.get("description", "").strip() or None
+
+        if not name:
+            flash("Category name is required.", "error")
+            return redirect(url_for("categories"))
+
+        update_category(id, name, description)
+        flash("Category updated.", "success")
+        return redirect(url_for("categories"))
+
+    return render_template("categories/edit_category.html", category=cat)
+
+
+@app.route("/categories/<int:id>/delete", methods=["GET", "POST"])
+def delete_category_route(id):
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    cat = get_category_by_id(id)
+    if cat is None:
+        abort(404)
+
+    if request.method == "POST":
+        delete_category(id)
+        flash("Category deleted.", "success")
+        return redirect(url_for("categories"))
+
+    return render_template("categories/delete_category.html", category=cat)
 
 
 if __name__ == "__main__":

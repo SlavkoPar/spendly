@@ -1,12 +1,10 @@
 from datetime import datetime
 from database.db import get_db
 
-CATEGORIES = ["Food", "Transport", "Bills", "Health", "Entertainment", "Shopping", "Other"]
-
 
 def _date_clause(date_from, date_to):
     if date_from and date_to:
-        return " AND date BETWEEN ? AND ?", [date_from, date_to]
+        return " AND e.date BETWEEN ? AND ?", [date_from, date_to]
     return "", []
 
 
@@ -24,17 +22,28 @@ def get_user_by_id(user_id):
     }
 
 
+def get_all_categories():
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT id, name, description FROM categories ORDER BY name"
+    ).fetchall()
+    conn.close()
+    return [{"id": r["id"], "name": r["name"], "description": r["description"]} for r in rows]
+
+
 def get_summary_stats(user_id, date_from=None, date_to=None):
     clause, extra = _date_clause(date_from, date_to)
     conn = get_db()
     row = conn.execute(
-        "SELECT COALESCE(SUM(amount), 0) AS total, COUNT(*) AS cnt "
-        "FROM expenses WHERE user_id = ?" + clause,
+        "SELECT COALESCE(SUM(e.amount), 0) AS total, COUNT(*) AS cnt "
+        "FROM expenses e WHERE e.user_id = ?" + clause,
         [user_id] + extra,
     ).fetchone()
     top = conn.execute(
-        "SELECT category FROM expenses WHERE user_id = ?" + clause +
-        " GROUP BY category ORDER BY SUM(amount) DESC LIMIT 1",
+        "SELECT c.name AS category "
+        "FROM expenses e JOIN categories c ON e.category_id = c.id "
+        "WHERE e.user_id = ?" + clause +
+        " GROUP BY e.category_id ORDER BY SUM(e.amount) DESC LIMIT 1",
         [user_id] + extra,
     ).fetchone()
     conn.close()
@@ -49,14 +58,15 @@ def get_recent_transactions(user_id, limit=10, date_from=None, date_to=None):
     clause, extra = _date_clause(date_from, date_to)
     conn = get_db()
     rows = conn.execute(
-        "SELECT id, date, description, category, amount FROM expenses "
-        "WHERE user_id = ?" + clause + " ORDER BY date DESC, id DESC LIMIT ?",
+        "SELECT e.id, e.date, e.description, c.name AS category, e.category_id, e.amount "
+        "FROM expenses e JOIN categories c ON e.category_id = c.id "
+        "WHERE e.user_id = ?" + clause + " ORDER BY e.date DESC, e.id DESC LIMIT ?",
         [user_id] + extra + [limit],
     ).fetchall()
     conn.close()
     return [
         {"id": r["id"], "date": r["date"], "description": r["description"],
-         "category": r["category"], "amount": r["amount"]}
+         "category": r["category"], "category_id": r["category_id"], "amount": r["amount"]}
         for r in rows
     ]
 
@@ -65,8 +75,9 @@ def get_category_breakdown(user_id, date_from=None, date_to=None):
     clause, extra = _date_clause(date_from, date_to)
     conn = get_db()
     rows = conn.execute(
-        "SELECT category, SUM(amount) AS total FROM expenses "
-        "WHERE user_id = ?" + clause + " GROUP BY category ORDER BY total DESC",
+        "SELECT c.name AS category, SUM(e.amount) AS total "
+        "FROM expenses e JOIN categories c ON e.category_id = c.id "
+        "WHERE e.user_id = ?" + clause + " GROUP BY e.category_id ORDER BY total DESC",
         [user_id] + extra,
     ).fetchall()
     conn.close()
@@ -82,12 +93,12 @@ def get_category_breakdown(user_id, date_from=None, date_to=None):
     return result
 
 
-def insert_expense(user_id, amount, category, date_str, description):
+def insert_expense(user_id, amount, category_id, date_str, description):
     conn = get_db()
     conn.execute(
-        "INSERT INTO expenses (user_id, amount, category, date, description) "
+        "INSERT INTO expenses (user_id, amount, category_id, date, description) "
         "VALUES (?, ?, ?, ?, ?)",
-        (user_id, amount, category, date_str, description or None),
+        (user_id, amount, category_id, date_str, description or None),
     )
     conn.commit()
     conn.close()
@@ -96,19 +107,21 @@ def insert_expense(user_id, amount, category, date_str, description):
 def get_expense_by_id(expense_id, user_id):
     conn = get_db()
     row = conn.execute(
-        "SELECT * FROM expenses WHERE id = ? AND user_id = ?",
+        "SELECT e.*, c.name AS category_name "
+        "FROM expenses e JOIN categories c ON e.category_id = c.id "
+        "WHERE e.id = ? AND e.user_id = ?",
         (expense_id, user_id),
     ).fetchone()
     conn.close()
     return row
 
 
-def update_expense(expense_id, user_id, amount, category, date_str, description):
+def update_expense(expense_id, user_id, amount, category_id, date_str, description):
     conn = get_db()
     conn.execute(
-        "UPDATE expenses SET amount=?, category=?, date=?, description=? "
+        "UPDATE expenses SET amount=?, category_id=?, date=?, description=? "
         "WHERE id=? AND user_id=?",
-        (amount, category, date_str, description or None, expense_id, user_id),
+        (amount, category_id, date_str, description or None, expense_id, user_id),
     )
     conn.commit()
     conn.close()
@@ -120,5 +133,42 @@ def delete_expense(expense_id, user_id):
         "DELETE FROM expenses WHERE id = ? AND user_id = ?",
         (expense_id, user_id),
     )
+    conn.commit()
+    conn.close()
+
+
+def get_category_by_id(category_id):
+    conn = get_db()
+    row = conn.execute(
+        "SELECT id, name, description FROM categories WHERE id = ?",
+        (category_id,),
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def insert_category(user_id, name, description):
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO categories (user_id, name, description) VALUES (?, ?, ?)",
+        (user_id, name, description or None),
+    )
+    conn.commit()
+    conn.close()
+
+
+def update_category(category_id, name, description):
+    conn = get_db()
+    conn.execute(
+        "UPDATE categories SET name=?, description=? WHERE id=?",
+        (name, description or None, category_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def delete_category(category_id):
+    conn = get_db()
+    conn.execute("DELETE FROM categories WHERE id = ?", (category_id,))
     conn.commit()
     conn.close()

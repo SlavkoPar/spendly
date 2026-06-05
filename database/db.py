@@ -23,16 +23,43 @@ def init_db():
             created_at   TEXT    DEFAULT (datetime('now'))
         );
 
-        CREATE TABLE IF NOT EXISTS expenses (
+        CREATE TABLE IF NOT EXISTS categories (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id     INTEGER NOT NULL REFERENCES users(id),
-            amount      REAL    NOT NULL,
-            category    TEXT    NOT NULL,
-            date        TEXT    NOT NULL,
+            name        TEXT    NOT NULL,
             description TEXT,
             created_at  TEXT    DEFAULT (datetime('now'))
         );
     """)
+
+    cols = {row["name"] for row in conn.execute("PRAGMA table_info(expenses)").fetchall()}
+    if not cols:
+        conn.executescript("""
+            CREATE TABLE expenses (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id     INTEGER NOT NULL REFERENCES users(id),
+                amount      REAL    NOT NULL,
+                category_id INTEGER NOT NULL REFERENCES categories(id),
+                date        TEXT    NOT NULL,
+                description TEXT,
+                created_at  TEXT    DEFAULT (datetime('now'))
+            );
+        """)
+    elif "category" in cols and "category_id" not in cols:
+        conn.executescript("""
+            DROP TABLE expenses;
+            CREATE TABLE expenses (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id     INTEGER NOT NULL REFERENCES users(id),
+                amount      REAL    NOT NULL,
+                category_id INTEGER NOT NULL REFERENCES categories(id),
+                date        TEXT    NOT NULL,
+                description TEXT,
+                created_at  TEXT    DEFAULT (datetime('now'))
+            );
+        """)
+
+    conn.commit()
     conn.close()
 
 
@@ -58,30 +85,44 @@ def get_user_by_email(email):
 
 def seed_db():
     conn = get_db()
-    count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
-    if count > 0:
+
+    if conn.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 0:
+        conn.execute(
+            "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
+            ("Demo User", "demo@spendly.com", generate_password_hash("demo123")),
+        )
+        conn.commit()
+
+    row = conn.execute("SELECT id FROM users WHERE email = ?", ("demo@spendly.com",)).fetchone()
+    if row is None:
         conn.close()
         return
+    user_id = row[0]
 
-    conn.execute(
-        "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
-        ("Demo User", "demo@spendly.com", generate_password_hash("demo123")),
-    )
-    user_id = conn.execute("SELECT id FROM users WHERE email = ?", ("demo@spendly.com",)).fetchone()[0]
+    if conn.execute("SELECT COUNT(*) FROM categories").fetchone()[0] == 0:
+        conn.executemany(
+            "INSERT INTO categories (user_id, name) VALUES (?, ?)",
+            [(user_id, name) for name in
+             ["Food", "Transport", "Bills", "Health", "Entertainment", "Shopping", "Other"]],
+        )
+        conn.commit()
 
-    expenses = [
-        (user_id, 45.50,  "Food",          "2026-06-01", "Weekly groceries"),
-        (user_id, 32.00,  "Transport",     "2026-06-02", "Monthly bus pass top-up"),
-        (user_id, 120.00, "Bills",         "2026-06-03", "Electricity bill"),
-        (user_id, 20.00,  "Health",        "2026-06-05", "Pharmacy"),
-        (user_id, 25.00,  "Entertainment", "2026-06-08", "Cinema tickets"),
-        (user_id, 69.99,  "Shopping",      "2026-06-10", "New trainers"),
-        (user_id, 15.00,  "Other",         "2026-06-12", "Charity donation"),
-        (user_id, 18.75,  "Food",          "2026-06-14", "Lunch out"),
-    ]
-    conn.executemany(
-        "INSERT INTO expenses (user_id, amount, category, date, description) VALUES (?, ?, ?, ?, ?)",
-        expenses,
-    )
-    conn.commit()
+    if conn.execute("SELECT COUNT(*) FROM expenses").fetchone()[0] == 0:
+        cats = {r["name"]: r["id"] for r in
+                conn.execute("SELECT id, name FROM categories WHERE user_id = ?", (user_id,)).fetchall()}
+        conn.executemany(
+            "INSERT INTO expenses (user_id, amount, category_id, date, description) VALUES (?, ?, ?, ?, ?)",
+            [
+                (user_id, 45.50,  cats["Food"],          "2026-06-01", "Weekly groceries"),
+                (user_id, 32.00,  cats["Transport"],     "2026-06-02", "Monthly bus pass top-up"),
+                (user_id, 120.00, cats["Bills"],         "2026-06-03", "Electricity bill"),
+                (user_id, 20.00,  cats["Health"],        "2026-06-05", "Pharmacy"),
+                (user_id, 25.00,  cats["Entertainment"], "2026-06-08", "Cinema tickets"),
+                (user_id, 69.99,  cats["Shopping"],      "2026-06-10", "New trainers"),
+                (user_id, 15.00,  cats["Other"],         "2026-06-12", "Charity donation"),
+                (user_id, 18.75,  cats["Food"],          "2026-06-14", "Lunch out"),
+            ],
+        )
+        conn.commit()
+
     conn.close()
