@@ -30,6 +30,24 @@ def init_db():
             description TEXT,
             created_at  TEXT    DEFAULT (datetime('now'))
         );
+
+        CREATE TABLE IF NOT EXISTS groups (
+            id               INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id          INTEGER NOT NULL REFERENCES users(id),
+            name             TEXT    NOT NULL,
+            description      TEXT,
+            num_of_questions INTEGER DEFAULT 0,
+            created_at       TEXT    DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS questions (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id     INTEGER NOT NULL REFERENCES users(id),
+            group_id    INTEGER NOT NULL REFERENCES groups(id),
+            text        TEXT    NOT NULL,
+            description TEXT,
+            created_at  TEXT    DEFAULT (datetime('now'))
+        );
     """)
 
     cols = {row["name"] for row in conn.execute("PRAGMA table_info(expenses)").fetchall()}

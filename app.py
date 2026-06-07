@@ -6,7 +6,10 @@ from database.db import get_db, init_db, seed_db, create_user, get_user_by_email
 from database.queries import (get_user_by_id, get_summary_stats, get_recent_transactions,
                               get_category_breakdown, get_all_categories,
                               insert_expense, get_expense_by_id, update_expense, delete_expense,
-                              get_category_by_id, insert_category, update_category, delete_category)
+                              get_category_by_id, insert_category, update_category, delete_category,
+                              get_all_groups, get_group_by_id, insert_group, update_group, delete_group,
+                              get_questions_by_group, get_question_by_id,
+                              insert_question, update_question, delete_question)
 
 app = Flask(__name__)
 app.secret_key = "dev-secret-key"
@@ -347,6 +350,139 @@ def delete_category_route(id):
         return redirect(url_for("categories"))
 
     return render_template("categories/delete_category.html", category=cat)
+
+
+# ------------------------------------------------------------------ #
+# Groups                                                              #
+# ------------------------------------------------------------------ #
+
+@app.route("/groups")
+def groups():
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+    all_groups = get_all_groups(session["user_id"])
+    return render_template("groups/list.html", groups=all_groups)
+
+
+@app.route("/groups/add", methods=["GET", "POST"])
+def add_group():
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        name        = request.form.get("name", "").strip()
+        description = request.form.get("description", "").strip() or None
+
+        if not name:
+            flash("Group name is required.", "error")
+            return redirect(url_for("groups"))
+
+        insert_group(session["user_id"], name, description)
+        flash("Group added.", "success")
+        return redirect(url_for("groups"))
+
+    return render_template("groups/add_group.html")
+
+
+@app.route("/groups/<int:id>/edit", methods=["GET", "POST"])
+def edit_group(id):
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    group = get_group_by_id(id, session["user_id"])
+    if group is None:
+        abort(404)
+
+    if request.method == "POST":
+        name        = request.form.get("name", "").strip()
+        description = request.form.get("description", "").strip() or None
+
+        if not name:
+            flash("Group name is required.", "error")
+            return redirect(url_for("edit_group", id=id))
+
+        update_group(id, session["user_id"], name, description)
+        flash("Group updated.", "success")
+        return redirect(url_for("groups"))
+
+    questions = get_questions_by_group(id, session["user_id"])
+    return render_template("groups/edit_group.html", group=group, questions=questions)
+
+
+@app.route("/groups/<int:id>/delete", methods=["GET", "POST"])
+def delete_group_route(id):
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    group = get_group_by_id(id, session["user_id"])
+    if group is None:
+        abort(404)
+
+    if request.method == "POST":
+        delete_group(id, session["user_id"])
+        flash("Group deleted.", "success")
+        return redirect(url_for("groups"))
+
+    return render_template("groups/delete_group.html", group=group)
+
+
+# ------------------------------------------------------------------ #
+# Questions                                                           #
+# ------------------------------------------------------------------ #
+
+@app.route("/groups/<int:group_id>/questions/add", methods=["POST"])
+def add_question(group_id):
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    group = get_group_by_id(group_id, session["user_id"])
+    if group is None:
+        abort(404)
+
+    text        = request.form.get("text", "").strip()
+    description = request.form.get("description", "").strip() or None
+
+    if not text:
+        flash("Question text is required.", "error")
+    else:
+        insert_question(session["user_id"], group_id, text, description)
+        flash("Question added.", "success")
+
+    return redirect(url_for("edit_group", id=group_id))
+
+
+@app.route("/groups/<int:group_id>/questions/<int:q_id>/edit", methods=["POST"])
+def edit_question_route(group_id, q_id):
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    question = get_question_by_id(q_id, session["user_id"])
+    if question is None:
+        abort(404)
+
+    text        = request.form.get("text", "").strip()
+    description = request.form.get("description", "").strip() or None
+
+    if not text:
+        flash("Question text is required.", "error")
+    else:
+        update_question(q_id, session["user_id"], text, description)
+        flash("Question updated.", "success")
+
+    return redirect(url_for("edit_group", id=group_id))
+
+
+@app.route("/groups/<int:group_id>/questions/<int:q_id>/delete", methods=["POST"])
+def delete_question_route(group_id, q_id):
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    question = get_question_by_id(q_id, session["user_id"])
+    if question is None:
+        abort(404)
+
+    delete_question(q_id, group_id, session["user_id"])
+    return redirect(url_for("edit_group", id=group_id))
 
 
 if __name__ == "__main__":

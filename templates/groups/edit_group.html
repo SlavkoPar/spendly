@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Group — Spendly{% endblock %}
+
+{% block content %}
+
+<section class="profile-section">
+    <div class="profile-inner">
+        <div class="profile-block">
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% set cat, msg = messages[0] %}
+                <div class="auth-{{ cat }}">{{ msg }}</div>
+              {% endif %}
+            {% endwith %}
+
+            <div class="block-title-row">
+                <h2 class="block-title">Edit Group</h2>
+                <a href="{{ url_for('groups') }}" class="btn-edit">Back to Groups</a>
+            </div>
+
+            <!-- Group fields (form without submit button — button is below using form= attribute) -->
+            <form method="POST" action="{{ url_for('edit_group', id=group.id) }}" id="groupForm">
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" name="name" maxlength="100"
+                           class="form-input" value="{{ group.name }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="description">Description
+                        <span class="field-optional">(optional)</span>
+                    </label>
+                    <input type="text" id="description" name="description" maxlength="200"
+                           class="form-input" value="{{ group.description or '' }}"
+                           placeholder="e.g. Common interview questions">
+                </div>
+            </form>
+
+            <!-- Questions section — visually inside the card, before Save Changes -->
+            <div class="block-title-row" style="margin-top:1.5rem;">
+                <h3 class="block-title" style="font-size:1.1rem;">Questions</h3>
+                <button type="button" class="btn-add-expense" id="addQuestionBtn">+ Add Question</button>
+            </div>
+
+            <table class="transactions-table">
+                <thead>
+                    <tr>
+                        <th>Question</th>
+                        <th>Description</th>
+                        <th class="actions-col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for q in questions %}
+                    <tr>
+                        <td>{{ q.text }}</td>
+                        <td>{{ q.description or '—' }}</td>
+                        <td class="actions-col">
+                            <button type="button" class="btn-edit"
+                                    data-id="{{ q.id }}"
+                                    data-text="{{ q.text }}"
+                                    data-description="{{ q.description or '' }}">Edit</button>
+                            <form method="POST"
+                                  action="/groups/{{ group.id }}/questions/{{ q.id }}/delete"
+                                  class="form-inline"
+                                  onsubmit="return confirm('Delete this question?')">
+                                <button type="submit" class="btn-delete">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" style="text-align:center;color:var(--color-muted,#888);">
+                            No questions yet.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- Save Changes — submits groupForm via form= attribute -->
+            <button type="submit" form="groupForm" class="btn-submit" style="margin-top:1.5rem;">
+                Save Changes
+            </button>
+
+        </div>
+    </div>
+</section>
+
+<!-- Add Question Modal -->
+<div class="modal-overlay" id="addQuestionModal" hidden>
+    <div class="modal-box" style="width:60%;max-height:80vh;overflow-y:auto;">
+        <div class="modal-header">
+            <h2 class="modal-title">Add Question</h2>
+            <button type="button" class="modal-close" id="addQuestionModalClose">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form method="POST" action="/groups/{{ group.id }}/questions/add" id="addQuestionForm">
+                <div class="form-group">
+                    <label for="add-q-text">Question text</label>
+                    <input type="text" id="add-q-text" name="text" maxlength="500"
+                           class="form-input" placeholder="e.g. What is polymorphism?" required>
+                </div>
+                <div class="form-group">
+                    <label for="add-q-description">Description
+                        <span class="field-optional">(optional)</span>
+                    </label>
+                    <input type="text" id="add-q-description" name="description" maxlength="500"
+                           class="form-input" placeholder="e.g. OOP concept">
+                </div>
+                <button type="submit" class="btn-submit">Add Question</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Question Modal -->
+<div class="modal-overlay" id="editQuestionModal" hidden>
+    <div class="modal-box" style="width:60%;max-height:80vh;overflow-y:auto;">
+        <div class="modal-header">
+            <h2 class="modal-title">Edit Question</h2>
+            <button type="button" class="modal-close" id="editQuestionModalClose">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form method="POST" id="editQuestionForm">
+                <div class="form-group">
+                    <label for="edit-q-text">Question text</label>
+                    <input type="text" id="edit-q-text" name="text" maxlength="500"
+                           class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-q-description">Description
+                        <span class="field-optional">(optional)</span>
+                    </label>
+                    <input type="text" id="edit-q-description" name="description" maxlength="500"
+                           class="form-input">
+                </div>
+                <button type="submit" class="btn-submit">Save Changes</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var y = sessionStorage.getItem('groupEditScrollY');
+    if (y !== null) {
+        window.scrollTo(0, parseInt(y, 10));
+        sessionStorage.removeItem('groupEditScrollY');
+    }
+})();
+
+var addQModal  = document.getElementById('addQuestionModal');
+var editQModal = document.getElementById('editQuestionModal');
+var editQForm  = document.getElementById('editQuestionForm');
+
+document.getElementById('addQuestionBtn').addEventListener('click', function () {
+    addQModal.hidden = false;
+});
+
+document.getElementById('addQuestionModalClose').addEventListener('click', function () {
+    addQModal.hidden = true;
+});
+
+document.getElementById('editQuestionModalClose').addEventListener('click', function () {
+    editQModal.hidden = true;
+});
+
+document.querySelectorAll('.btn-edit[data-id]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        editQForm.action = '/groups/{{ group.id }}/questions/' + this.dataset.id + '/edit';
+        document.getElementById('edit-q-text').value        = this.dataset.text;
+        document.getElementById('edit-q-description').value = this.dataset.description;
+        editQModal.hidden = false;
+    });
+});
+
+[addQModal, editQModal].forEach(function (modal) {
+    modal.addEventListener('click', function (e) {
+        if (e.target === modal) modal.hidden = true;
+    });
+});
+
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+        addQModal.hidden  = true;
+        editQModal.hidden = true;
+    }
+});
+
+function saveScroll() { sessionStorage.setItem('groupEditScrollY', window.scrollY); }
+
+document.getElementById('groupForm').addEventListener('submit', saveScroll);
+document.getElementById('addQuestionForm').addEventListener('submit', saveScroll);
+editQForm.addEventListener('submit', saveScroll);
+
+document.querySelectorAll('form[action*="/delete"]').forEach(function (f) {
+    f.addEventListener('submit', saveScroll);
+});
+</script>
+
+{% endblock %}

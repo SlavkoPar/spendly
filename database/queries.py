@@ -172,3 +172,122 @@ def delete_category(category_id):
     conn.execute("DELETE FROM categories WHERE id = ?", (category_id,))
     conn.commit()
     conn.close()
+
+
+# ------------------------------------------------------------------ #
+# Groups                                                              #
+# ------------------------------------------------------------------ #
+
+def get_all_groups(user_id):
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT id, name, description, num_of_questions FROM groups "
+        "WHERE user_id = ? ORDER BY name",
+        (user_id,),
+    ).fetchall()
+    conn.close()
+    return [{"id": r["id"], "name": r["name"], "description": r["description"],
+             "num_of_questions": r["num_of_questions"]} for r in rows]
+
+
+def get_group_by_id(group_id, user_id):
+    conn = get_db()
+    row = conn.execute(
+        "SELECT id, name, description, num_of_questions FROM groups WHERE id = ? AND user_id = ?",
+        (group_id, user_id),
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def insert_group(user_id, name, description):
+    conn = get_db()
+    cursor = conn.execute(
+        "INSERT INTO groups (user_id, name, description) VALUES (?, ?, ?)",
+        (user_id, name, description or None),
+    )
+    conn.commit()
+    group_id = cursor.lastrowid
+    conn.close()
+    return group_id
+
+
+def update_group(group_id, user_id, name, description):
+    conn = get_db()
+    conn.execute(
+        "UPDATE groups SET name=?, description=? WHERE id=? AND user_id=?",
+        (name, description or None, group_id, user_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def delete_group(group_id, user_id):
+    conn = get_db()
+    conn.execute("DELETE FROM questions WHERE group_id = ?", (group_id,))
+    conn.execute("DELETE FROM groups WHERE id = ? AND user_id = ?", (group_id, user_id))
+    conn.commit()
+    conn.close()
+
+
+# ------------------------------------------------------------------ #
+# Questions                                                           #
+# ------------------------------------------------------------------ #
+
+def get_questions_by_group(group_id, user_id):
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT id, text, description FROM questions "
+        "WHERE group_id = ? AND user_id = ? ORDER BY id",
+        (group_id, user_id),
+    ).fetchall()
+    conn.close()
+    return [{"id": r["id"], "text": r["text"], "description": r["description"]} for r in rows]
+
+
+def get_question_by_id(question_id, user_id):
+    conn = get_db()
+    row = conn.execute(
+        "SELECT id, group_id, text, description FROM questions WHERE id = ? AND user_id = ?",
+        (question_id, user_id),
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def insert_question(user_id, group_id, text, description):
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO questions (user_id, group_id, text, description) VALUES (?, ?, ?, ?)",
+        (user_id, group_id, text, description or None),
+    )
+    conn.execute(
+        "UPDATE groups SET num_of_questions = num_of_questions + 1 WHERE id = ?",
+        (group_id,),
+    )
+    conn.commit()
+    conn.close()
+
+
+def update_question(question_id, user_id, text, description):
+    conn = get_db()
+    conn.execute(
+        "UPDATE questions SET text=?, description=? WHERE id=? AND user_id=?",
+        (text, description or None, question_id, user_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def delete_question(question_id, group_id, user_id):
+    conn = get_db()
+    conn.execute(
+        "DELETE FROM questions WHERE id = ? AND user_id = ?",
+        (question_id, user_id),
+    )
+    conn.execute(
+        "UPDATE groups SET num_of_questions = MAX(0, num_of_questions - 1) WHERE id = ?",
+        (group_id,),
+    )
+    conn.commit()
+    conn.close()
