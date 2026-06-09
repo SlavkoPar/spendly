@@ -41,11 +41,30 @@ def init_db():
         );
 
         CREATE TABLE IF NOT EXISTS questions (
+            id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id                 INTEGER NOT NULL REFERENCES users(id),
+            group_id                INTEGER NOT NULL REFERENCES groups(id),
+            text                    TEXT    NOT NULL,
+            description             TEXT,
+            num_of_assigned_answers INTEGER DEFAULT 0,
+            created_at              TEXT    DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS answers (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id     INTEGER NOT NULL REFERENCES users(id),
-            group_id    INTEGER NOT NULL REFERENCES groups(id),
-            text        TEXT    NOT NULL,
+            short_desc  TEXT    NOT NULL,
             description TEXT,
+            link        TEXT,
+            created_at  TEXT    DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS question_answers (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            question_id INTEGER NOT NULL REFERENCES questions(id),
+            answer_id   INTEGER NOT NULL REFERENCES answers(id),
+            future      TEXT,
+            user_id     INTEGER NOT NULL REFERENCES users(id),
             created_at  TEXT    DEFAULT (datetime('now'))
         );
     """)
@@ -76,6 +95,12 @@ def init_db():
                 created_at  TEXT    DEFAULT (datetime('now'))
             );
         """)
+
+    q_cols = {r["name"] for r in conn.execute("PRAGMA table_info(questions)").fetchall()}
+    if "num_of_assigned_answers" not in q_cols:
+        conn.execute(
+            "ALTER TABLE questions ADD COLUMN num_of_assigned_answers INTEGER DEFAULT 0"
+        )
 
     conn.commit()
     conn.close()

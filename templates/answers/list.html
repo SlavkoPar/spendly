@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}Answers — Spendly{% endblock %}
+
+{% block content %}
+
+<section class="profile-section">
+    <div class="profile-inner">
+        <div class="profile-block">
+            <div class="block-title-row">
+                <h2 class="block-title">Answers</h2>
+                <button type="button" class="btn-add-expense" id="addAnswerBtn">+ Add Answer</button>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% set cat, msg = messages[0] %}
+                <div class="auth-{{ cat }}">{{ msg }}</div>
+              {% endif %}
+            {% endwith %}
+
+            <div class="autocomplete-wrap">
+                <input type="search" id="answerFilter" class="form-input answer-filter"
+                       placeholder="Filter by name…" autocomplete="off">
+                <ul class="autocomplete-dropdown" id="acDropdown" hidden></ul>
+            </div>
+
+            <table class="transactions-table">
+                <thead>
+                    <tr>
+                        <th>Short Description</th>
+                        <th>Description</th>
+                        <th>Link</th>
+                        <th class="actions-col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for answer in answers %}
+                    <tr class="answer-row">
+                        <td>{{ answer.short_desc }}</td>
+                        <td>{{ answer.description or '—' }}</td>
+                        <td>
+                            {% if answer.link %}
+                            <a href="{{ answer.link }}" target="_blank" rel="noopener">{{ answer.link }}</a>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td class="actions-col">
+                            <button type="button" class="btn-edit"
+                                    data-id="{{ answer.id }}"
+                                    data-short-desc="{{ answer.short_desc }}"
+                                    data-description="{{ answer.description or '' }}"
+                                    data-link="{{ answer.link or '' }}">Edit</button>
+                            <form method="POST" action="/answers/{{ answer.id }}/delete"
+                                  class="form-inline"
+                                  onsubmit="return confirm('Delete this answer?')">
+                                <button type="submit" class="btn-delete">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="table-empty">No answers yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- Add Answer Modal -->
+<div class="modal-overlay" id="addModal" hidden>
+    <div class="modal-box modal-box-wide">
+        <div class="modal-header">
+            <h2 class="modal-title">Add Answer</h2>
+            <button type="button" class="modal-close" id="addModalClose">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form method="POST" action="{{ url_for('add_answer') }}" id="addForm">
+                <div class="form-group">
+                    <label for="add-short-desc">Short Description</label>
+                    <input type="text" id="add-short-desc" name="short_desc" maxlength="200"
+                           class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="add-description">Description <span class="field-optional">(optional)</span></label>
+                    <input type="text" id="add-description" name="description" maxlength="500" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label for="add-link">Link <span class="field-optional">(optional)</span></label>
+                    <input type="url" id="add-link" name="link" maxlength="500"
+                           class="form-input" placeholder="https://…">
+                </div>
+                <button type="submit" class="btn-submit">Add Answer</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Answer Modal -->
+<div class="modal-overlay" id="editModal" hidden>
+    <div class="modal-box modal-box-wide">
+        <div class="modal-header">
+            <h2 class="modal-title">Edit Answer</h2>
+            <button type="button" class="modal-close" id="editModalClose">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form method="POST" id="editForm">
+                <div class="form-group">
+                    <label for="edit-short-desc">Short Description</label>
+                    <input type="text" id="edit-short-desc" name="short_desc" maxlength="200"
+                           class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-description">Description <span class="field-optional">(optional)</span></label>
+                    <input type="text" id="edit-description" name="description" maxlength="500" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label for="edit-link">Link <span class="field-optional">(optional)</span></label>
+                    <input type="url" id="edit-link" name="link" maxlength="500" class="form-input">
+                </div>
+                <button type="submit" class="btn-submit">Save Changes</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var y = sessionStorage.getItem('answersScrollY');
+    if (y !== null) { window.scrollTo(0, parseInt(y, 10)); sessionStorage.removeItem('answersScrollY'); }
+})();
+
+var addModal  = document.getElementById('addModal');
+var editModal = document.getElementById('editModal');
+var editForm  = document.getElementById('editForm');
+
+var filterInput = document.getElementById('answerFilter');
+var acDropdown  = document.getElementById('acDropdown');
+
+var allNames = Array.from(document.querySelectorAll('.answer-row td:first-child'))
+                    .map(function (td) { return td.textContent.trim(); });
+
+function filterRows(q) {
+    var lower = q.toLowerCase();
+    document.querySelectorAll('.answer-row').forEach(function (row) {
+        row.hidden = lower !== '' &&
+            !row.querySelector('td').textContent.trim().toLowerCase().includes(lower);
+    });
+}
+
+function renderSuggestions(q) {
+    acDropdown.innerHTML = '';
+    if (!q) { acDropdown.hidden = true; return; }
+    var lower   = q.toLowerCase();
+    var matches = allNames.filter(function (n) { return n.toLowerCase().includes(lower); });
+    if (!matches.length) { acDropdown.hidden = true; return; }
+    matches.forEach(function (name) {
+        var li = document.createElement('li');
+        li.className = 'autocomplete-item';
+        li.textContent = name;
+        li.addEventListener('mousedown', function (e) {
+            e.preventDefault();
+            filterInput.value = name;
+            filterRows(name);
+            acDropdown.hidden = true;
+        });
+        acDropdown.appendChild(li);
+    });
+    acDropdown.hidden = false;
+}
+
+filterInput.addEventListener('input', function () {
+    filterRows(this.value);
+    renderSuggestions(this.value);
+});
+
+filterInput.addEventListener('blur', function () {
+    setTimeout(function () { acDropdown.hidden = true; }, 150);
+});
+
+filterInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { acDropdown.hidden = true; this.value = ''; filterRows(''); }
+});
+
+document.getElementById('addAnswerBtn').addEventListener('click', function () { addModal.hidden = false; });
+document.getElementById('addModalClose').addEventListener('click', function () { addModal.hidden = true; });
+document.getElementById('editModalClose').addEventListener('click', function () { editModal.hidden = true; });
+
+document.querySelectorAll('.btn-edit[data-id]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        editForm.action = '/answers/' + this.dataset.id + '/edit';
+        document.getElementById('edit-short-desc').value  = this.dataset.shortDesc;
+        document.getElementById('edit-description').value = this.dataset.description;
+        document.getElementById('edit-link').value        = this.dataset.link;
+        editModal.hidden = false;
+    });
+});
+
+[addModal, editModal].forEach(function (m) {
+    m.addEventListener('click', function (e) { if (e.target === m) m.hidden = true; });
+});
+
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { addModal.hidden = true; editModal.hidden = true; }
+});
+
+function saveScroll() { sessionStorage.setItem('answersScrollY', window.scrollY); }
+document.getElementById('addForm').addEventListener('submit', saveScroll);
+editForm.addEventListener('submit', saveScroll);
+document.querySelectorAll('form[action*="/delete"]').forEach(function (f) { f.addEventListener('submit', saveScroll); });
+</script>
+
+{% endblock %}

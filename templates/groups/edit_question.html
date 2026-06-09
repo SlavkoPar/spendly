@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Question — Spendly{% endblock %}
+
+{% block content %}
+
+<section class="profile-section">
+    <div class="profile-inner">
+        <div class="profile-block">
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% set cat, msg = messages[0] %}
+                <div class="auth-{{ cat }}">{{ msg }}</div>
+              {% endif %}
+            {% endwith %}
+
+            <div class="block-title-row">
+                <h2 class="block-title">Edit Question</h2>
+                <a href="{{ url_for('edit_group', id=group.id) }}" class="btn-edit">Back to Group</a>
+            </div>
+
+            <form method="POST"
+                  action="{{ url_for('edit_question_route', group_id=group.id, q_id=question.id) }}"
+                  id="questionForm">
+                <div class="form-group">
+                    <label for="text">Question text</label>
+                    <input type="text" id="text" name="text" maxlength="500"
+                           class="form-input" value="{{ question.text }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="description">Description
+                        <span class="field-optional">(optional)</span>
+                    </label>
+                    <input type="text" id="description" name="description" maxlength="500"
+                           class="form-input" value="{{ question.description or '' }}">
+                </div>
+            </form>
+
+            <!-- Assigned Answers section -->
+            <div class="block-title-row section-top-gap">
+                <h3 class="block-title section-subtitle">Assigned Answers</h3>
+                <button type="button" class="btn-add-expense" id="openPickerBtn">+ Assign Answer</button>
+            </div>
+
+            <table class="transactions-table" id="assignedTable"
+                   {% if not assigned_answers %}hidden{% endif %}>
+                <thead>
+                    <tr>
+                        <th>Short Description</th>
+                        <th>Description</th>
+                        <th class="actions-col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="assignedTbody">
+                    {% for a in assigned_answers %}
+                    <tr id="assigned-row-{{ a.id }}">
+                        <td>{{ a.short_desc }}</td>
+                        <td>{{ a.description or '—' }}</td>
+                        <td class="actions-col">
+                            <button type="button" class="btn-delete btn-remove"
+                                    data-id="{{ a.id }}"
+                                    data-short-desc="{{ a.short_desc }}"
+                                    data-description="{{ a.description or '' }}">Remove</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <p id="assignedEmpty" class="table-empty section-top-gap"
+               {% if assigned_answers %}hidden{% endif %}>
+                No answers assigned yet.
+            </p>
+
+            <button type="submit" form="questionForm" class="btn-submit section-top-gap">
+                Save Changes
+            </button>
+
+        </div>
+    </div>
+</section>
+
+<!-- Assign Answer Picker Modal -->
+<div class="modal-overlay" id="pickerModal" hidden>
+    <div class="modal-box modal-box-wide">
+        <div class="modal-header">
+            <h2 class="modal-title">Assign Answer</h2>
+            <button type="button" class="modal-close" id="pickerModalClose">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="autocomplete-wrap picker-filter-wrap">
+                <input type="search" id="pickerFilter" class="form-input"
+                       placeholder="Filter by name…" autocomplete="off">
+                <ul class="autocomplete-dropdown" id="pickerAcDropdown" hidden></ul>
+            </div>
+            <div id="pickerList"></div>
+            <p id="pickerEmpty" class="table-empty" hidden>All answers are already assigned.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+var GROUP_ID   = {{ group.id }};
+var Q_ID       = {{ question.id }};
+var UNASSIGNED = {{ unassigned_answers | tojson }};
+
+var pickerModal   = document.getElementById('pickerModal');
+var pickerList    = document.getElementById('pickerList');
+var pickerEmpty   = document.getElementById('pickerEmpty');
+var assignedTbody = document.getElementById('assignedTbody');
+var assignedTable = document.getElementById('assignedTable');
+var assignedEmpty = document.getElementById('assignedEmpty');
+
+function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function syncEmpty() {
+    var has = assignedTbody.querySelectorAll('tr').length > 0;
+    assignedTable.hidden = !has;
+    assignedEmpty.hidden = has;
+}
+
+// ---- picker filter / autocomplete ----
+var pickerFilter     = document.getElementById('pickerFilter');
+var pickerAcDropdown = document.getElementById('pickerAcDropdown');
+var pickerFilterQ    = '';
+
+function pickerNames() {
+    return UNASSIGNED.map(function (a) { return a.short_desc; });
+}
+
+function renderPickerAc(q) {
+    pickerAcDropdown.innerHTML = '';
+    if (!q) { pickerAcDropdown.hidden = true; return; }
+    var lower = q.toLowerCase();
+    var hits  = pickerNames().filter(function (n) { return n.toLowerCase().includes(lower); });
+    if (!hits.length) { pickerAcDropdown.hidden = true; return; }
+    hits.forEach(function (name) {
+        var li = document.createElement('li');
+        li.className = 'autocomplete-item';
+        li.textContent = name;
+        li.addEventListener('mousedown', function (e) {
+            e.preventDefault();
+            pickerFilter.value = name;
+            pickerFilterQ = name;
+            renderPicker();
+            pickerAcDropdown.hidden = true;
+        });
+        pickerAcDropdown.appendChild(li);
+    });
+    pickerAcDropdown.hidden = false;
+}
+
+pickerFilter.addEventListener('input', function () {
+    pickerFilterQ = this.value;
+    renderPicker();
+    renderPickerAc(this.value);
+});
+
+pickerFilter.addEventListener('blur', function () {
+    setTimeout(function () { pickerAcDropdown.hidden = true; }, 150);
+});
+
+pickerFilter.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+        pickerAcDropdown.hidden = true;
+        pickerFilter.value = '';
+        pickerFilterQ = '';
+        renderPicker();
+    }
+});
+
+// ---- picker ----
+function renderPicker() {
+    pickerList.innerHTML = '';
+    var filtered = pickerFilterQ
+        ? UNASSIGNED.filter(function (a) {
+            return a.short_desc.toLowerCase().includes(pickerFilterQ.toLowerCase());
+          })
+        : UNASSIGNED;
+    pickerEmpty.hidden = filtered.length > 0;
+    filtered.forEach(function (a) {
+        var div = document.createElement('div');
+        div.className = 'picker-row';
+        div.id = 'picker-row-' + a.id;
+        div.innerHTML =
+            '<span class="picker-answer-text">' + esc(a.short_desc) + '</span>' +
+            '<button type="button" class="btn-edit btn-assign" ' +
+            'data-id="' + a.id + '" data-short-desc="' + esc(a.short_desc) + '" ' +
+            'data-description="' + esc(a.description || '') + '">Assign</button>';
+        pickerList.appendChild(div);
+    });
+    pickerList.querySelectorAll('.btn-assign').forEach(attachAssign);
+}
+
+function attachAssign(btn) {
+    btn.addEventListener('click', function () {
+        doAssign(parseInt(this.dataset.id, 10), this.dataset.shortDesc, this.dataset.description);
+    });
+}
+
+function doAssign(aid, sd, desc) {
+    fetch('/groups/' + GROUP_ID + '/questions/' + Q_ID + '/assign', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'answer_id=' + aid,
+    }).then(function (r) { return r.json(); }).then(function (d) {
+        if (!d.ok) return;
+        var tr = document.createElement('tr');
+        tr.id = 'assigned-row-' + aid;
+        tr.innerHTML =
+            '<td>' + esc(sd) + '</td>' +
+            '<td>' + (desc ? esc(desc) : '—') + '</td>' +
+            '<td class="actions-col"><button type="button" class="btn-delete btn-remove" ' +
+            'data-id="' + aid + '" data-short-desc="' + esc(sd) + '" data-description="' + esc(desc || '') + '">' +
+            'Remove</button></td>';
+        assignedTbody.appendChild(tr);
+        tr.querySelector('.btn-remove').addEventListener('click', onRemove);
+        syncEmpty();
+        UNASSIGNED = UNASSIGNED.filter(function (a) { return a.id !== aid; });
+        renderPicker();
+    });
+}
+
+// ---- remove ----
+function onRemove() {
+    doUnassign(parseInt(this.dataset.id, 10), this.dataset.shortDesc, this.dataset.description);
+}
+
+function doUnassign(aid, sd, desc) {
+    fetch('/groups/' + GROUP_ID + '/questions/' + Q_ID + '/unassign', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'answer_id=' + aid,
+    }).then(function (r) { return r.json(); }).then(function (d) {
+        if (!d.ok) return;
+        var row = document.getElementById('assigned-row-' + aid);
+        if (row) row.remove();
+        syncEmpty();
+        UNASSIGNED.push({id: aid, short_desc: sd, description: desc});
+        UNASSIGNED.sort(function (a, b) { return a.short_desc.localeCompare(b.short_desc); });
+        if (!pickerModal.hidden) renderPicker();
+    });
+}
+
+document.querySelectorAll('.btn-remove').forEach(function (btn) {
+    btn.addEventListener('click', onRemove);
+});
+
+// ---- picker modal ----
+document.getElementById('openPickerBtn').addEventListener('click', function () {
+    pickerFilter.value = '';
+    pickerFilterQ = '';
+    pickerAcDropdown.hidden = true;
+    renderPicker();
+    pickerModal.hidden = false;
+});
+document.getElementById('pickerModalClose').addEventListener('click', function () { pickerModal.hidden = true; });
+pickerModal.addEventListener('click', function (e) { if (e.target === pickerModal) pickerModal.hidden = true; });
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape') pickerModal.hidden = true; });
+</script>
+
+{% endblock %}

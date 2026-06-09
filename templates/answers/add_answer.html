@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Add Answer — Spendly{% endblock %}
+{% block content %}
+<section class="auth-section">
+    <div class="auth-container">
+        <div class="auth-header"><h1 class="auth-title">Add Answer</h1></div>
+        <div class="auth-card">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}{% set cat, msg = messages[0] %}<div class="auth-{{ cat }}">{{ msg }}</div>{% endif %}
+            {% endwith %}
+            <form method="POST" action="{{ url_for('add_answer') }}">
+                <div class="form-group">
+                    <label for="short_desc">Short Description</label>
+                    <input type="text" id="short_desc" name="short_desc" maxlength="200"
+                           class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="description">Description <span class="field-optional">(optional)</span></label>
+                    <input type="text" id="description" name="description" maxlength="500" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label for="link">Link <span class="field-optional">(optional)</span></label>
+                    <input type="url" id="link" name="link" maxlength="500"
+                           class="form-input" placeholder="https://…">
+                </div>
+                <button type="submit" class="btn-submit">Add Answer</button>
+            </form>
+        </div>
+        <p class="auth-switch"><a href="{{ url_for('answers') }}">Cancel — back to answers</a></p>
+    </div>
+</section>
+{% endblock %}

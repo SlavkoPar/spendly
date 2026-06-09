@@ -20,7 +20,6 @@
                 <a href="{{ url_for('groups') }}" class="btn-edit">Back to Groups</a>
             </div>
 
-            <!-- Group fields (form without submit button — button is below using form= attribute) -->
             <form method="POST" action="{{ url_for('edit_group', id=group.id) }}" id="groupForm">
                 <div class="form-group">
                     <label for="name">Name</label>
@@ -37,9 +36,8 @@
                 </div>
             </form>
 
-            <!-- Questions section — visually inside the card, before Save Changes -->
-            <div class="block-title-row" style="margin-top:1.5rem;">
-                <h3 class="block-title" style="font-size:1.1rem;">Questions</h3>
+            <div class="block-title-row section-top-gap">
+                <h3 class="block-title section-subtitle">Questions</h3>
                 <button type="button" class="btn-add-expense" id="addQuestionBtn">+ Add Question</button>
             </div>
 
@@ -48,6 +46,7 @@
                     <tr>
                         <th>Question</th>
                         <th>Description</th>
+                        <th>Answers</th>
                         <th class="actions-col">Actions</th>
                     </tr>
                 </thead>
@@ -56,11 +55,13 @@
                     <tr>
                         <td>{{ q.text }}</td>
                         <td>{{ q.description or '—' }}</td>
+                        <td>{{ q.num_of_assigned_answers }}</td>
                         <td class="actions-col">
-                            <button type="button" class="btn-edit"
+                            <button type="button" class="btn-edit btn-edit-question"
                                     data-id="{{ q.id }}"
                                     data-text="{{ q.text }}"
-                                    data-description="{{ q.description or '' }}">Edit</button>
+                                    data-description="{{ q.description or '' }}"
+                                    data-assigned-ids="{{ q.assigned_answer_ids | tojson }}">Edit</button>
                             <form method="POST"
                                   action="/groups/{{ group.id }}/questions/{{ q.id }}/delete"
                                   class="form-inline"
@@ -71,16 +72,13 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="3" style="text-align:center;color:var(--color-muted,#888);">
-                            No questions yet.
-                        </td>
+                        <td colspan="4" class="table-empty">No questions yet.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
 
-            <!-- Save Changes — submits groupForm via form= attribute -->
-            <button type="submit" form="groupForm" class="btn-submit" style="margin-top:1.5rem;">
+            <button type="submit" form="groupForm" class="btn-submit section-top-gap">
                 Save Changes
             </button>
 
@@ -90,7 +88,7 @@
 
 <!-- Add Question Modal -->
 <div class="modal-overlay" id="addQuestionModal" hidden>
-    <div class="modal-box" style="width:60%;max-height:80vh;overflow-y:auto;">
+    <div class="modal-box modal-box-wide">
         <div class="modal-header">
             <h2 class="modal-title">Add Question</h2>
             <button type="button" class="modal-close" id="addQuestionModalClose">&times;</button>
@@ -117,7 +115,7 @@
 
 <!-- Edit Question Modal -->
 <div class="modal-overlay" id="editQuestionModal" hidden>
-    <div class="modal-box" style="width:60%;max-height:80vh;overflow-y:auto;">
+    <div class="modal-box modal-box-wide">
         <div class="modal-header">
             <h2 class="modal-title">Edit Question</h2>
             <button type="button" class="modal-close" id="editQuestionModalClose">&times;</button>
@@ -136,68 +134,246 @@
                     <input type="text" id="edit-q-description" name="description" maxlength="500"
                            class="form-input">
                 </div>
-                <button type="submit" class="btn-submit">Save Changes</button>
+
+                <!-- Assigned Answers section -->
+                <div class="block-title-row section-top-gap">
+                    <h4 class="section-subtitle">Assigned Answers</h4>
+                    <button type="button" id="openPickerBtn" class="btn-edit">+ Assign Answer</button>
+                </div>
+                <table class="transactions-table" id="editAssignedTable" hidden>
+                    <thead>
+                        <tr>
+                            <th>Short Description</th>
+                            <th class="actions-col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="editAssignedTbody"></tbody>
+                </table>
+                <p id="editAssignedEmpty" class="table-empty">No answers assigned yet.</p>
+
+                <button type="submit" class="btn-submit section-top-gap">Save Changes</button>
             </form>
         </div>
     </div>
 </div>
 
+<!-- Assign Answer Picker Modal (nested, higher z-index) -->
+<div class="modal-overlay modal-overlay-top" id="pickerModal" hidden>
+    <div class="modal-box modal-box-wide">
+        <div class="modal-header">
+            <h2 class="modal-title">Assign Answer</h2>
+            <button type="button" class="modal-close" id="pickerModalClose">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="autocomplete-wrap picker-filter-wrap">
+                <input type="search" id="pickerFilter" class="form-input"
+                       placeholder="Filter by name…" autocomplete="off">
+                <ul class="autocomplete-dropdown" id="pickerAcDropdown" hidden></ul>
+            </div>
+            <div id="pickerList"></div>
+            <p id="pickerEmpty" class="table-empty" hidden>All answers are already assigned.</p>
+        </div>
+    </div>
+</div>
+
 <script>
+var GROUP_ID    = {{ group.id }};
+var ALL_ANSWERS = {{ all_answers | tojson }};
+
+var CURRENT_Q_ID       = null;
+var CURRENT_ASSIGNED   = [];   // [{id, short_desc, description}, ...]
+var pickerFilterQ      = '';
+
+var addQModal       = document.getElementById('addQuestionModal');
+var editQModal      = document.getElementById('editQuestionModal');
+var editQForm       = document.getElementById('editQuestionForm');
+var pickerModal     = document.getElementById('pickerModal');
+var pickerList      = document.getElementById('pickerList');
+var pickerEmpty     = document.getElementById('pickerEmpty');
+var pickerFilter    = document.getElementById('pickerFilter');
+var pickerAcDrop    = document.getElementById('pickerAcDropdown');
+var assignedTbody   = document.getElementById('editAssignedTbody');
+var assignedTable   = document.getElementById('editAssignedTable');
+var assignedEmpty   = document.getElementById('editAssignedEmpty');
+
 (function () {
     var y = sessionStorage.getItem('groupEditScrollY');
-    if (y !== null) {
-        window.scrollTo(0, parseInt(y, 10));
-        sessionStorage.removeItem('groupEditScrollY');
-    }
+    if (y !== null) { window.scrollTo(0, parseInt(y, 10)); sessionStorage.removeItem('groupEditScrollY'); }
 })();
 
-var addQModal  = document.getElementById('addQuestionModal');
-var editQModal = document.getElementById('editQuestionModal');
-var editQForm  = document.getElementById('editQuestionForm');
+function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
-document.getElementById('addQuestionBtn').addEventListener('click', function () {
-    addQModal.hidden = false;
-});
+// ---- assigned section ----
+function syncAssigned() {
+    var has = assignedTbody.querySelectorAll('tr').length > 0;
+    assignedTable.hidden = !has;
+    assignedEmpty.hidden = has;
+}
 
-document.getElementById('addQuestionModalClose').addEventListener('click', function () {
-    addQModal.hidden = true;
-});
+function renderAssigned() {
+    assignedTbody.innerHTML = '';
+    CURRENT_ASSIGNED.forEach(function (a) {
+        var tr = document.createElement('tr');
+        tr.id = 'eq-assigned-' + a.id;
+        tr.innerHTML =
+            '<td>' + esc(a.short_desc) + '</td>' +
+            '<td class="actions-col"><button type="button" class="btn-delete btn-eq-remove" ' +
+            'data-id="' + a.id + '" data-short-desc="' + esc(a.short_desc) +
+            '" data-description="' + esc(a.description || '') + '">Remove</button></td>';
+        assignedTbody.appendChild(tr);
+        tr.querySelector('.btn-eq-remove').addEventListener('click', onRemove);
+    });
+    syncAssigned();
+}
 
-document.getElementById('editQuestionModalClose').addEventListener('click', function () {
-    editQModal.hidden = true;
-});
-
-document.querySelectorAll('.btn-edit[data-id]').forEach(function (btn) {
+// ---- open edit question modal ----
+document.querySelectorAll('.btn-edit-question').forEach(function (btn) {
     btn.addEventListener('click', function () {
-        editQForm.action = '/groups/{{ group.id }}/questions/' + this.dataset.id + '/edit';
+        CURRENT_Q_ID = parseInt(this.dataset.id, 10);
+        var assignedIds = JSON.parse(this.dataset.assignedIds || '[]');
+
+        editQForm.action = '/groups/' + GROUP_ID + '/questions/' + CURRENT_Q_ID + '/edit';
         document.getElementById('edit-q-text').value        = this.dataset.text;
         document.getElementById('edit-q-description').value = this.dataset.description;
+
+        CURRENT_ASSIGNED = ALL_ANSWERS.filter(function (a) {
+            return assignedIds.includes(a.id);
+        });
+        renderAssigned();
         editQModal.hidden = false;
     });
 });
 
-[addQModal, editQModal].forEach(function (modal) {
-    modal.addEventListener('click', function (e) {
-        if (e.target === modal) modal.hidden = true;
+// ---- assign ----
+function doAssign(aid, sd, desc) {
+    fetch('/groups/' + GROUP_ID + '/questions/' + CURRENT_Q_ID + '/assign', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'answer_id=' + aid,
+    }).then(function (r) { return r.json(); }).then(function (d) {
+        if (!d.ok) return;
+        CURRENT_ASSIGNED.push({id: aid, short_desc: sd, description: desc});
+        renderAssigned();
+        renderPicker();
     });
+}
+
+// ---- unassign ----
+function onRemove() {
+    var aid  = parseInt(this.dataset.id, 10);
+    var sd   = this.dataset.shortDesc;
+    var desc = this.dataset.description;
+    fetch('/groups/' + GROUP_ID + '/questions/' + CURRENT_Q_ID + '/unassign', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'answer_id=' + aid,
+    }).then(function (r) { return r.json(); }).then(function (d) {
+        if (!d.ok) return;
+        CURRENT_ASSIGNED = CURRENT_ASSIGNED.filter(function (a) { return a.id !== aid; });
+        renderAssigned();
+        if (!pickerModal.hidden) renderPicker();
+    });
+}
+
+// ---- picker ----
+function unassignedAnswers() {
+    var assignedIds = CURRENT_ASSIGNED.map(function (a) { return a.id; });
+    var base = ALL_ANSWERS.filter(function (a) { return !assignedIds.includes(a.id); });
+    if (!pickerFilterQ) return base;
+    var lower = pickerFilterQ.toLowerCase();
+    return base.filter(function (a) { return a.short_desc.toLowerCase().includes(lower); });
+}
+
+function renderPicker() {
+    pickerList.innerHTML = '';
+    var list = unassignedAnswers();
+    pickerEmpty.hidden = list.length > 0;
+    list.forEach(function (a) {
+        var div = document.createElement('div');
+        div.className = 'picker-row';
+        div.innerHTML =
+            '<span class="picker-answer-text">' + esc(a.short_desc) + '</span>' +
+            '<button type="button" class="btn-edit btn-assign" ' +
+            'data-id="' + a.id + '" data-short-desc="' + esc(a.short_desc) +
+            '" data-description="' + esc(a.description || '') + '">Assign</button>';
+        pickerList.appendChild(div);
+    });
+    pickerList.querySelectorAll('.btn-assign').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            doAssign(parseInt(this.dataset.id, 10), this.dataset.shortDesc, this.dataset.description);
+        });
+    });
+}
+
+function renderPickerAc(q) {
+    pickerAcDrop.innerHTML = '';
+    if (!q) { pickerAcDrop.hidden = true; return; }
+    var lower = q.toLowerCase();
+    var hits  = unassignedAnswers().map(function (a) { return a.short_desc; })
+                                   .filter(function (n) { return n.toLowerCase().includes(lower); });
+    if (!hits.length) { pickerAcDrop.hidden = true; return; }
+    hits.forEach(function (name) {
+        var li = document.createElement('li');
+        li.className = 'autocomplete-item';
+        li.textContent = name;
+        li.addEventListener('mousedown', function (e) {
+            e.preventDefault();
+            pickerFilter.value = name;
+            pickerFilterQ = name;
+            renderPicker();
+            pickerAcDrop.hidden = true;
+        });
+        pickerAcDrop.appendChild(li);
+    });
+    pickerAcDrop.hidden = false;
+}
+
+pickerFilter.addEventListener('input', function () {
+    pickerFilterQ = this.value;
+    renderPicker();
+    renderPickerAc(this.value);
+});
+pickerFilter.addEventListener('blur', function () {
+    setTimeout(function () { pickerAcDrop.hidden = true; }, 150);
+});
+pickerFilter.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+        pickerAcDrop.hidden = true; pickerFilter.value = ''; pickerFilterQ = ''; renderPicker();
+    }
+});
+
+document.getElementById('openPickerBtn').addEventListener('click', function () {
+    pickerFilter.value = ''; pickerFilterQ = ''; pickerAcDrop.hidden = true;
+    renderPicker();
+    pickerModal.hidden = false;
+});
+
+// ---- modal close ----
+document.getElementById('addQuestionBtn').addEventListener('click', function () { addQModal.hidden = false; });
+document.getElementById('addQuestionModalClose').addEventListener('click', function () { addQModal.hidden = true; });
+document.getElementById('editQuestionModalClose').addEventListener('click', function () { editQModal.hidden = true; });
+document.getElementById('pickerModalClose').addEventListener('click', function () { pickerModal.hidden = true; });
+
+[addQModal, editQModal, pickerModal].forEach(function (m) {
+    m.addEventListener('click', function (e) { if (e.target === m) m.hidden = true; });
 });
 
 document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
-        addQModal.hidden  = true;
+        if (!pickerModal.hidden) { pickerModal.hidden = true; return; }
+        addQModal.hidden = true;
         editQModal.hidden = true;
     }
 });
 
+// ---- scroll preservation ----
 function saveScroll() { sessionStorage.setItem('groupEditScrollY', window.scrollY); }
-
 document.getElementById('groupForm').addEventListener('submit', saveScroll);
 document.getElementById('addQuestionForm').addEventListener('submit', saveScroll);
 editQForm.addEventListener('submit', saveScroll);
-
-document.querySelectorAll('form[action*="/delete"]').forEach(function (f) {
-    f.addEventListener('submit', saveScroll);
-});
+document.querySelectorAll('form[action*="/delete"]').forEach(function (f) { f.addEventListener('submit', saveScroll); });
 </script>
 
 {% endblock %}

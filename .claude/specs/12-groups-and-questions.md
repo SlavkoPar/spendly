@@ -61,9 +61,12 @@
 No new dependencies.
 
 ## Rules for implementation
+- group can have many child groups
 - one group has many questions
 - count num_of_questions
 - put link groups in base
+- filter groups by name
+- set top and bottom paddings, for every group item,  to 5px
 - in `templates/groups/group_edit.html` implement section `Questions` for maintenance of questions (add, edit, delete)
 - make `Questions` section always visible
 - put 'Add Question' button to the top of the `Questions` section

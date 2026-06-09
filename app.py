@@ -1,6 +1,6 @@
 import sqlite3
 from datetime import date, datetime
-from flask import Flask, render_template, request, redirect, url_for, flash, session, abort
+from flask import Flask, render_template, request, redirect, url_for, flash, session, abort, jsonify
 from werkzeug.security import check_password_hash
 from database.db import get_db, init_db, seed_db, create_user, get_user_by_email
 from database.queries import (get_user_by_id, get_summary_stats, get_recent_transactions,
@@ -9,7 +9,11 @@ from database.queries import (get_user_by_id, get_summary_stats, get_recent_tran
                               get_category_by_id, insert_category, update_category, delete_category,
                               get_all_groups, get_group_by_id, insert_group, update_group, delete_group,
                               get_questions_by_group, get_question_by_id,
-                              insert_question, update_question, delete_question)
+                              insert_question, update_question, delete_question,
+                              get_all_answers, get_answer_by_id,
+                              insert_answer, update_answer, delete_answer,
+                              get_assigned_answers_for_question, get_unassigned_answers_for_question,
+                              assign_answer, unassign_answer)
 
 app = Flask(__name__)
 app.secret_key = "dev-secret-key"
@@ -405,8 +409,10 @@ def edit_group(id):
         flash("Group updated.", "success")
         return redirect(url_for("groups"))
 
-    questions = get_questions_by_group(id, session["user_id"])
-    return render_template("groups/edit_group.html", group=group, questions=questions)
+    questions   = get_questions_by_group(id, session["user_id"])
+    all_answers = get_all_answers(session["user_id"])
+    return render_template("groups/edit_group.html", group=group, questions=questions,
+                           all_answers=all_answers)
 
 
 @app.route("/groups/<int:id>/delete", methods=["GET", "POST"])
@@ -451,25 +457,36 @@ def add_question(group_id):
     return redirect(url_for("edit_group", id=group_id))
 
 
-@app.route("/groups/<int:group_id>/questions/<int:q_id>/edit", methods=["POST"])
+@app.route("/groups/<int:group_id>/questions/<int:q_id>/edit", methods=["GET", "POST"])
 def edit_question_route(group_id, q_id):
     if not session.get("user_id"):
         return redirect(url_for("login"))
 
     question = get_question_by_id(q_id, session["user_id"])
-    if question is None:
+    if question is None or question["group_id"] != group_id:
         abort(404)
 
-    text        = request.form.get("text", "").strip()
-    description = request.form.get("description", "").strip() or None
+    group = get_group_by_id(group_id, session["user_id"])
+    if group is None:
+        abort(404)
 
-    if not text:
-        flash("Question text is required.", "error")
-    else:
+    if request.method == "POST":
+        text        = request.form.get("text", "").strip()
+        description = request.form.get("description", "").strip() or None
+
+        if not text:
+            flash("Question text is required.", "error")
+            return redirect(url_for("edit_question_route", group_id=group_id, q_id=q_id))
+
         update_question(q_id, session["user_id"], text, description)
         flash("Question updated.", "success")
+        return redirect(url_for("edit_group", id=group_id))
 
-    return redirect(url_for("edit_group", id=group_id))
+    assigned   = get_assigned_answers_for_question(q_id, session["user_id"])
+    unassigned = get_unassigned_answers_for_question(q_id, session["user_id"])
+    return render_template("groups/edit_question.html",
+                           group=group, question=question,
+                           assigned_answers=assigned, unassigned_answers=unassigned)
 
 
 @app.route("/groups/<int:group_id>/questions/<int:q_id>/delete", methods=["POST"])
@@ -483,6 +500,112 @@ def delete_question_route(group_id, q_id):
 
     delete_question(q_id, group_id, session["user_id"])
     return redirect(url_for("edit_group", id=group_id))
+
+
+# ------------------------------------------------------------------ #
+# Question assignment (fetch-based JSON)                              #
+# ------------------------------------------------------------------ #
+
+@app.route("/groups/<int:group_id>/questions/<int:q_id>/assign", methods=["POST"])
+def assign_answer_route(group_id, q_id):
+    if not session.get("user_id"):
+        return jsonify({"ok": False}), 401
+    question = get_question_by_id(q_id, session["user_id"])
+    if question is None or question["group_id"] != group_id:
+        return jsonify({"ok": False}), 404
+    answer_id_str = request.form.get("answer_id", "")
+    if not answer_id_str.isdigit():
+        return jsonify({"ok": False}), 400
+    assign_answer(q_id, int(answer_id_str), session["user_id"])
+    return jsonify({"ok": True})
+
+
+@app.route("/groups/<int:group_id>/questions/<int:q_id>/unassign", methods=["POST"])
+def unassign_answer_route(group_id, q_id):
+    if not session.get("user_id"):
+        return jsonify({"ok": False}), 401
+    question = get_question_by_id(q_id, session["user_id"])
+    if question is None or question["group_id"] != group_id:
+        return jsonify({"ok": False}), 404
+    answer_id_str = request.form.get("answer_id", "")
+    if not answer_id_str.isdigit():
+        return jsonify({"ok": False}), 400
+    unassign_answer(q_id, int(answer_id_str), session["user_id"])
+    return jsonify({"ok": True})
+
+
+# ------------------------------------------------------------------ #
+# Answers                                                             #
+# ------------------------------------------------------------------ #
+
+@app.route("/answers")
+def answers():
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+    return render_template("answers/list.html", answers=get_all_answers(session["user_id"]))
+
+
+@app.route("/answers/add", methods=["GET", "POST"])
+def add_answer():
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        short_desc  = request.form.get("short_desc", "").strip()
+        description = request.form.get("description", "").strip() or None
+        link        = request.form.get("link", "").strip() or None
+
+        if not short_desc:
+            flash("Short description is required.", "error")
+            return redirect(url_for("answers"))
+
+        insert_answer(session["user_id"], short_desc, description, link)
+        flash("Answer added.", "success")
+        return redirect(url_for("answers"))
+
+    return render_template("answers/add_answer.html")
+
+
+@app.route("/answers/<int:id>/edit", methods=["GET", "POST"])
+def edit_answer(id):
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    answer = get_answer_by_id(id, session["user_id"])
+    if answer is None:
+        abort(404)
+
+    if request.method == "POST":
+        short_desc  = request.form.get("short_desc", "").strip()
+        description = request.form.get("description", "").strip() or None
+        link        = request.form.get("link", "").strip() or None
+
+        if not short_desc:
+            flash("Short description is required.", "error")
+            return redirect(url_for("answers"))
+
+        update_answer(id, session["user_id"], short_desc, description, link)
+        flash("Answer updated.", "success")
+        return redirect(url_for("answers"))
+
+    return render_template("answers/edit_answer.html", answer=answer)
+
+
+@app.route("/answers/<int:id>/delete", methods=["GET", "POST"])
+def delete_answer_route(id):
+    if not session.get("user_id"):
+        return redirect(url_for("login"))
+
+    answer = get_answer_by_id(id, session["user_id"])
+    if answer is None:
+        abort(404)
+
+    if request.method == "POST":
+        delete_answer(id, session["user_id"])
+        flash("Answer deleted.", "success")
+        return redirect(url_for("answers"))
+
+    return render_template("answers/delete_answer.html", answer=answer)
 
 
 if __name__ == "__main__":

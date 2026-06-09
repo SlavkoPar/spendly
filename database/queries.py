@@ -2,6 +2,130 @@ from datetime import datetime
 from database.db import get_db
 
 
+# ------------------------------------------------------------------ #
+# Answers & assignments                                               #
+# ------------------------------------------------------------------ #
+
+def get_all_answers(user_id):
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT id, short_desc, description, link FROM answers "
+        "WHERE user_id = ? ORDER BY short_desc",
+        (user_id,),
+    ).fetchall()
+    conn.close()
+    return [{"id": r["id"], "short_desc": r["short_desc"],
+             "description": r["description"], "link": r["link"]} for r in rows]
+
+
+def get_answer_by_id(answer_id, user_id):
+    conn = get_db()
+    row = conn.execute(
+        "SELECT id, short_desc, description, link FROM answers WHERE id = ? AND user_id = ?",
+        (answer_id, user_id),
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def insert_answer(user_id, short_desc, description, link):
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO answers (user_id, short_desc, description, link) VALUES (?, ?, ?, ?)",
+        (user_id, short_desc, description or None, link or None),
+    )
+    conn.commit()
+    conn.close()
+
+
+def update_answer(answer_id, user_id, short_desc, description, link):
+    conn = get_db()
+    conn.execute(
+        "UPDATE answers SET short_desc=?, description=?, link=? WHERE id=? AND user_id=?",
+        (short_desc, description or None, link or None, answer_id, user_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def delete_answer(answer_id, user_id):
+    conn = get_db()
+    for row in conn.execute(
+        "SELECT question_id FROM question_answers WHERE answer_id = ?", (answer_id,)
+    ).fetchall():
+        conn.execute(
+            "UPDATE questions "
+            "SET num_of_assigned_answers = MAX(0, num_of_assigned_answers - 1) "
+            "WHERE id = ?", (row["question_id"],)
+        )
+    conn.execute("DELETE FROM question_answers WHERE answer_id = ?", (answer_id,))
+    conn.execute("DELETE FROM answers WHERE id = ? AND user_id = ?", (answer_id, user_id))
+    conn.commit()
+    conn.close()
+
+
+def get_assigned_answers_for_question(question_id, user_id):
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT a.id, a.short_desc, a.description FROM answers a "
+        "JOIN question_answers qa ON qa.answer_id = a.id "
+        "WHERE qa.question_id = ? AND a.user_id = ? ORDER BY a.short_desc",
+        (question_id, user_id),
+    ).fetchall()
+    conn.close()
+    return [{"id": r["id"], "short_desc": r["short_desc"], "description": r["description"]}
+            for r in rows]
+
+
+def get_unassigned_answers_for_question(question_id, user_id):
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT id, short_desc, description FROM answers "
+        "WHERE user_id = ? AND id NOT IN "
+        "(SELECT answer_id FROM question_answers WHERE question_id = ?) "
+        "ORDER BY short_desc",
+        (user_id, question_id),
+    ).fetchall()
+    conn.close()
+    return [{"id": r["id"], "short_desc": r["short_desc"], "description": r["description"]}
+            for r in rows]
+
+
+def assign_answer(question_id, answer_id, user_id):
+    conn = get_db()
+    exists = conn.execute(
+        "SELECT 1 FROM question_answers WHERE question_id = ? AND answer_id = ?",
+        (question_id, answer_id),
+    ).fetchone()
+    if not exists:
+        conn.execute(
+            "INSERT INTO question_answers (question_id, answer_id, user_id) VALUES (?, ?, ?)",
+            (question_id, answer_id, user_id),
+        )
+        conn.execute(
+            "UPDATE questions SET num_of_assigned_answers = num_of_assigned_answers + 1 "
+            "WHERE id = ?", (question_id,)
+        )
+    conn.commit()
+    conn.close()
+
+
+def unassign_answer(question_id, answer_id, user_id):
+    conn = get_db()
+    deleted = conn.execute(
+        "DELETE FROM question_answers WHERE question_id = ? AND answer_id = ? AND user_id = ?",
+        (question_id, answer_id, user_id),
+    ).rowcount
+    if deleted:
+        conn.execute(
+            "UPDATE questions "
+            "SET num_of_assigned_answers = MAX(0, num_of_assigned_answers - 1) "
+            "WHERE id = ?", (question_id,)
+        )
+    conn.commit()
+    conn.close()
+
+
 def _date_clause(date_from, date_to):
     if date_from and date_to:
         return " AND e.date BETWEEN ? AND ?", [date_from, date_to]
@@ -237,12 +361,22 @@ def delete_group(group_id, user_id):
 def get_questions_by_group(group_id, user_id):
     conn = get_db()
     rows = conn.execute(
-        "SELECT id, text, description FROM questions "
-        "WHERE group_id = ? AND user_id = ? ORDER BY id",
+        "SELECT q.id, q.text, q.description, q.num_of_assigned_answers, "
+        "GROUP_CONCAT(qa.answer_id) AS assigned_ids "
+        "FROM questions q "
+        "LEFT JOIN question_answers qa ON qa.question_id = q.id "
+        "WHERE q.group_id = ? AND q.user_id = ? "
+        "GROUP BY q.id ORDER BY q.id",
         (group_id, user_id),
     ).fetchall()
     conn.close()
-    return [{"id": r["id"], "text": r["text"], "description": r["description"]} for r in rows]
+    result = []
+    for r in rows:
+        ids = [int(x) for x in r["assigned_ids"].split(",")] if r["assigned_ids"] else []
+        result.append({"id": r["id"], "text": r["text"], "description": r["description"],
+                       "num_of_assigned_answers": r["num_of_assigned_answers"],
+                       "assigned_answer_ids": ids})
+    return result
 
 
 def get_question_by_id(question_id, user_id):
