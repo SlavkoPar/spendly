@@ -442,7 +442,7 @@ a { color: inherit; text-decoration: none; }
 
 .form-input {
     width: 100%;
-    padding: 0.6rem 0.875rem;
+    padding: 0.3rem 0.875rem;
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     font-family: var(--font-body);
@@ -698,7 +698,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .transactions-table td {
-    padding: 0.75rem;
+    padding: 0.15rem;
     color: var(--ink-soft);
     border-bottom: 1px solid var(--border-soft);
 }
@@ -1045,8 +1045,75 @@ a { color: inherit; text-decoration: none; }
 .section-top-gap  { margin-top: 1.5rem; }
 .section-subtitle { font-size: 1.1rem; }
 
-/* Picker filter */
+/* Filter wrappers */
 .picker-filter-wrap { margin-bottom: 0.75rem; }
+.group-filter-wrap  { margin-bottom: 0.75rem; }
+
+/* ------------------------------------------------------------------ */
+/* Entity themes                                                       */
+/* ------------------------------------------------------------------ */
+
+/* --- Groups → forest green --- */
+.profile-block.theme-groups {
+    background: #f4f8f5;
+    border-color: #9dbbaa;
+    border-left: 4px solid var(--accent);
+}
+.theme-groups .block-title { color: var(--accent); }
+.theme-groups .autocomplete-wrap .form-input {
+    background: #eef5f0;
+    border-color: #b3cfbb;
+}
+.theme-groups .autocomplete-wrap .form-input:focus {
+    border-color: var(--accent);
+    background: #fff;
+}
+.theme-groups .autocomplete-item:hover { background: var(--accent-light); color: var(--accent); }
+.theme-groups .transactions-table th {
+    color: var(--accent);
+    background: var(--accent-light);
+    border-bottom: 2px solid #9dbbaa;
+}
+.theme-groups .transactions-table tbody tr:hover td { background: #edf4ef; }
+
+/* --- Questions → amber --- */
+.theme-questions {
+    background: #fffbf3;
+    border-left: 4px solid var(--accent-2);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    padding-left: 0.75rem;
+}
+.theme-questions .block-title,
+.theme-questions .section-subtitle { color: var(--accent-2); }
+.theme-questions .transactions-table th {
+    color: var(--accent-2);
+    background: var(--accent-2-light);
+    border-bottom: 2px solid #e8c97a;
+}
+.theme-questions .transactions-table tbody tr:hover td { background: var(--accent-2-light); }
+
+/* --- Answers → cobalt blue --- */
+.profile-block.theme-answers {
+    background: #f5f8ff;
+    border-color: #93c5fd;
+    border-left: 4px solid #2563eb;
+}
+.theme-answers .block-title { color: #2563eb; }
+.theme-answers .autocomplete-wrap .form-input {
+    background: #eff4ff;
+    border-color: #93c5fd;
+}
+.theme-answers .autocomplete-wrap .form-input:focus {
+    border-color: #2563eb;
+    background: #fff;
+}
+.theme-answers .autocomplete-item:hover { background: #eff6ff; color: #2563eb; }
+.theme-answers .transactions-table th {
+    color: #2563eb;
+    background: #eff6ff;
+    border-bottom: 2px solid #93c5fd;
+}
+.theme-answers .transactions-table tbody tr:hover td { background: #eef3ff; }
 
 /* Assign picker rows */
 .picker-row         { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.4rem 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.9rem; margin-bottom: 0.4rem; }
