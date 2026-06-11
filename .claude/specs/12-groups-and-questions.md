@@ -58,14 +58,14 @@
    - `templates/groups/delete_group.html`
 
 ## New dependencies
-No new dependencies.
+No new dependencies. 
 
 ## Rules for implementation
 - group can have many child groups
 - for each group row 
-   -- which has no questions, enable button for adding of child groups, text `add group`
-   -- enable button for expand and collapse of the child groups
-   -- which has no child groups, enable button for adding of questions
+   - which has no questions, enable button for adding of child groups, text `add group`
+   - enable button for expand and collapse of the child groups
+   - which has no child groups, enable button for adding of questions
 - one group has many questions
 - count num_of_questions
 - put link groups in base
