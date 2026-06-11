@@ -71,10 +71,10 @@ No new dependencies.
 - for answers, and aswers in modal for selection of unassigned answers,  enable autocomplete filter by name
 - put link answers in 'base' html
 - for answers, set top and bottom paddings to: 3px 
-- give differnet styles (background, color, borders, filters) for groups, questions and answers
+- give different css styles (background, color, borders, filters) for groups, questions and answers
+- set top and bottom paddings to 0.1rem for all group, question and answer rows
 - set styles:
    .form-input { padding: 0.3rem 0.875rem; }
-   .transactions-table td { padding: 0.15rem; }
 
 
 
