@@ -52,7 +52,7 @@
                 </thead>
                 <tbody>
                     {% for q in questions %}
-                    <tr>
+                    <tr class="question-row">
                         <td>{{ q.text }}</td>
                         <td>{{ q.description or '—' }}</td>
                         <td>{{ q.num_of_assigned_answers }}</td>

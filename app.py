@@ -381,7 +381,15 @@ def add_group():
             flash("Group name is required.", "error")
             return redirect(url_for("groups"))
 
-        insert_group(session["user_id"], name, description)
+        # Validate parent_id: must be a digit and a group owned by this user.
+        parent_id = None
+        raw_parent = request.form.get("parent_id", "").strip()
+        if raw_parent.isdigit():
+            parent = get_group_by_id(int(raw_parent), session["user_id"])
+            if parent is not None:
+                parent_id = parent["id"]
+
+        insert_group(session["user_id"], name, description, parent_id)
         flash("Group added.", "success")
         return redirect(url_for("groups"))
 

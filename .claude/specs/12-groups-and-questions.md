@@ -66,7 +66,7 @@ No new dependencies.
    - which has no questions, enable button for adding of child groups, text `add group`
    - enable button for expand and collapse of the child groups
    - which has no child groups, enable button for adding of questions
-- one group has many questions
+- one group can have many questions
 - count num_of_questions
 - put link groups in base
 - filter groups by name

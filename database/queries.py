@@ -303,32 +303,59 @@ def delete_category(category_id):
 # ------------------------------------------------------------------ #
 
 def get_all_groups(user_id):
+    """Return groups in pre-order (parents before their children) with a
+    ``depth`` key so the list page can render them as an indented tree."""
     conn = get_db()
     rows = conn.execute(
-        "SELECT id, name, description, num_of_questions FROM groups "
+        "SELECT id, parent_id, name, description, num_of_questions FROM groups "
         "WHERE user_id = ? ORDER BY name",
         (user_id,),
     ).fetchall()
     conn.close()
-    return [{"id": r["id"], "name": r["name"], "description": r["description"],
-             "num_of_questions": r["num_of_questions"]} for r in rows]
+
+    groups = [{"id": r["id"], "parent_id": r["parent_id"], "name": r["name"],
+               "description": r["description"], "num_of_questions": r["num_of_questions"]}
+              for r in rows]
+
+    children = {}
+    for g in groups:
+        children.setdefault(g["parent_id"], []).append(g)
+
+    ordered = []
+
+    def walk(parent_id, depth):
+        for g in children.get(parent_id, []):
+            g["depth"] = depth
+            ordered.append(g)
+            walk(g["id"], depth + 1)
+
+    walk(None, 0)
+
+    # Any group whose parent was deleted becomes a root so it is never hidden.
+    seen = {g["id"] for g in ordered}
+    for g in groups:
+        if g["id"] not in seen:
+            g["depth"] = 0
+            ordered.append(g)
+    return ordered
 
 
 def get_group_by_id(group_id, user_id):
     conn = get_db()
     row = conn.execute(
-        "SELECT id, name, description, num_of_questions FROM groups WHERE id = ? AND user_id = ?",
+        "SELECT id, parent_id, name, description, num_of_questions "
+        "FROM groups WHERE id = ? AND user_id = ?",
         (group_id, user_id),
     ).fetchone()
     conn.close()
     return dict(row) if row else None
 
 
-def insert_group(user_id, name, description):
+def insert_group(user_id, name, description, parent_id=None):
     conn = get_db()
     cursor = conn.execute(
-        "INSERT INTO groups (user_id, name, description) VALUES (?, ?, ?)",
-        (user_id, name, description or None),
+        "INSERT INTO groups (user_id, name, description, parent_id) VALUES (?, ?, ?, ?)",
+        (user_id, name, description or None, parent_id),
     )
     conn.commit()
     group_id = cursor.lastrowid

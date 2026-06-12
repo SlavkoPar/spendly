@@ -31,11 +31,17 @@
                 </thead>
                 <tbody>
                     {% for group in groups %}
-                    <tr>
-                        <td>{{ group.name }}</td>
+                    <tr class="group-row">
+                        <td>{% for _ in range(group.depth) %}<span class="tree-indent"></span>{% endfor %}{% if group.depth %}<span class="tree-branch">└</span>{% endif %}{{ group.name }}</td>
                         <td>{{ group.description or '—' }}</td>
                         <td>{{ group.num_of_questions }}</td>
                         <td class="actions-col">
+                            <button type="button" class="btn-add-child"
+                                    data-parent-id="{{ group.id }}"
+                                    data-parent-name="{{ group.name }}">+ Child</button>
+                            <button type="button" class="btn-add-question"
+                                    data-group-id="{{ group.id }}"
+                                    data-group-name="{{ group.name }}">+ Question</button>
                             <a href="{{ url_for('edit_group', id=group.id) }}" class="btn-edit">Edit</a>
                             <form method="POST" action="/groups/{{ group.id }}/delete" class="form-inline"
                                   onsubmit="return confirm('Delete this group and all its questions?')">
@@ -55,7 +61,7 @@
 <div class="modal-overlay" id="addModal" hidden>
     <div class="modal-box">
         <div class="modal-header">
-            <h2 class="modal-title">Add Group</h2>
+            <h2 class="modal-title" id="addModalTitle">Add Group</h2>
             <button type="button" class="modal-close" id="addModalClose">&times;</button>
         </div>
         <div class="modal-body">
@@ -72,7 +78,45 @@
                     <input type="text" id="add-description" name="description" maxlength="200"
                            class="form-input" placeholder="e.g. Common interview questions">
                 </div>
+                <div class="form-group">
+                    <label for="add-parent">Parent group
+                        <span class="field-optional">(optional)</span>
+                    </label>
+                    <select id="add-parent" name="parent_id" class="form-input">
+                        <option value="">— None (top level) —</option>
+                        {% for g in groups %}
+                        <option value="{{ g.id }}">{{ '— ' * g.depth }}{{ g.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
                 <button type="submit" class="btn-submit">Add Group</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Question Modal -->
+<div class="modal-overlay" id="questionModal" hidden>
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2 class="modal-title" id="questionModalTitle">Add Question</h2>
+            <button type="button" class="modal-close" id="questionModalClose">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form method="POST" id="questionForm">
+                <div class="form-group">
+                    <label for="q-text">Question</label>
+                    <input type="text" id="q-text" name="text" maxlength="200"
+                           class="form-input" placeholder="e.g. How do I reset my password?" required>
+                </div>
+                <div class="form-group">
+                    <label for="q-description">Description
+                        <span class="field-optional">(optional)</span>
+                    </label>
+                    <input type="text" id="q-description" name="description" maxlength="200"
+                           class="form-input" placeholder="e.g. Steps for a password reset">
+                </div>
+                <button type="submit" class="btn-submit">Add Question</button>
             </form>
         </div>
     </div>
@@ -89,8 +133,29 @@
 
 var addModal = document.getElementById('addModal');
 
-document.getElementById('addGroupBtn').addEventListener('click', function () {
+var addModalTitle = document.getElementById('addModalTitle');
+var parentSelect  = document.getElementById('add-parent');
+
+function openAddModal(parentId, parentName) {
+    if (parentId) {
+        parentSelect.value = parentId;
+        addModalTitle.textContent = 'Add Child Group' + (parentName ? ' to "' + parentName + '"' : '');
+    } else {
+        parentSelect.value = '';
+        addModalTitle.textContent = 'Add Group';
+    }
     addModal.hidden = false;
+    document.getElementById('add-name').focus();
+}
+
+document.getElementById('addGroupBtn').addEventListener('click', function () {
+    openAddModal(null, null);
+});
+
+document.querySelectorAll('.btn-add-child').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        openAddModal(this.dataset.parentId, this.dataset.parentName);
+    });
 });
 
 document.getElementById('addModalClose').addEventListener('click', function () {
@@ -102,10 +167,41 @@ addModal.addEventListener('click', function (e) {
 });
 
 document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') addModal.hidden = true;
+    if (e.key === 'Escape') { addModal.hidden = true; questionModal.hidden = true; }
 });
 
 document.getElementById('addForm').addEventListener('submit', function () {
+    sessionStorage.setItem('groupsScrollY', window.scrollY);
+});
+
+// ---- Add question to a group ---- //
+var questionModal      = document.getElementById('questionModal');
+var questionForm       = document.getElementById('questionForm');
+var questionModalTitle = document.getElementById('questionModalTitle');
+
+function openQuestionModal(groupId, groupName) {
+    questionForm.action = '/groups/' + groupId + '/questions/add';
+    questionModalTitle.textContent = 'Add Question' + (groupName ? ' to "' + groupName + '"' : '');
+    questionForm.reset();
+    questionModal.hidden = false;
+    document.getElementById('q-text').focus();
+}
+
+document.querySelectorAll('.btn-add-question').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        openQuestionModal(this.dataset.groupId, this.dataset.groupName);
+    });
+});
+
+document.getElementById('questionModalClose').addEventListener('click', function () {
+    questionModal.hidden = true;
+});
+
+questionModal.addEventListener('click', function (e) {
+    if (e.target === questionModal) questionModal.hidden = true;
+});
+
+questionForm.addEventListener('submit', function () {
     sessionStorage.setItem('groupsScrollY', window.scrollY);
 });
 

@@ -74,7 +74,7 @@ No new dependencies.
 - give different css styles (background, color, borders, filters) for groups, questions and answers
 - set top and bottom paddings to 0.1rem for all group, question and answer rows
 - set styles:
-   .form-input { padding: 0.3rem 0.875rem; }
+   .form-input { padding: 0.125rem 0.875rem; }
 
 
 

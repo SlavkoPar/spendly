@@ -1,5 +1,6 @@
 import sqlite3
 import os
+import json
 from werkzeug.security import generate_password_hash
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "spendly.db")
@@ -102,6 +103,10 @@ def init_db():
             "ALTER TABLE questions ADD COLUMN num_of_assigned_answers INTEGER DEFAULT 0"
         )
 
+    g_cols = {r["name"] for r in conn.execute("PRAGMA table_info(groups)").fetchall()}
+    if "parent_id" not in g_cols:
+        conn.execute("ALTER TABLE groups ADD COLUMN parent_id INTEGER REFERENCES groups(id)")
+
     conn.commit()
     conn.close()
 
@@ -147,6 +152,18 @@ def seed_db():
             "INSERT INTO categories (user_id, name) VALUES (?, ?)",
             [(user_id, name) for name in
              ["Food", "Transport", "Bills", "Health", "Entertainment", "Shopping", "Other"]],
+        )
+        conn.commit()
+
+    if conn.execute("SELECT COUNT(*) FROM answers").fetchone()[0] == 0:
+        with open(os.path.join(os.path.dirname(__file__), "answers.json"), "r", encoding="utf-8") as f:
+            answers = json.load(f)
+        conn.executemany(
+            "INSERT INTO answers (id, user_id, short_desc, description, link) VALUES (?, ?, ?, ?, ?)",
+            [
+                (a["id"], a.get("user_id", user_id), a["short_desc"], a.get("description"), a.get("link"))
+                for a in answers
+            ],
         )
         conn.commit()
 

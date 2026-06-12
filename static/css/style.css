@@ -19,6 +19,17 @@
     --border: #e4e1da;
     --border-soft: #eeebe4;
 
+    /* Entity themes: groups (green) / questions (amber) / answers (teal) */
+    --group-bg: #eef4f0;
+    --group-accent: #1a472a;
+    --group-ink: #1a472a;
+    --question-bg: #fbf4e6;
+    --question-accent: #c17f24;
+    --question-ink: #8a5a14;
+    --answer-bg: #eaf1f5;
+    --answer-accent: #2b6777;
+    --answer-ink: #1f4d59;
+
     --font-display: 'DM Serif Display', Georgia, serif;
     --font-body: 'DM Sans', system-ui, sans-serif;
 
@@ -914,6 +925,35 @@ a { color: inherit; text-decoration: none; }
 }
 .btn-edit:hover { text-decoration: underline; }
 
+.btn-add-question {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--accent);
+    background: none;
+    border: none;
+    padding: 0;
+    margin-right: 0.75rem;
+    cursor: pointer;
+    font-family: inherit;
+}
+.btn-add-question:hover { text-decoration: underline; }
+
+.btn-add-child {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--success, #2e7d32);
+    background: none;
+    border: none;
+    padding: 0;
+    margin-right: 0.75rem;
+    cursor: pointer;
+    font-family: inherit;
+}
+.btn-add-child:hover { text-decoration: underline; }
+
+.tree-indent { display: inline-block; width: 1.5rem; }
+.tree-branch { color: var(--ink-muted); margin-right: 0.35rem; }
+
 /* ------------------------------------------------------------------ */
 /* Edit Expense Modal                                                  */
 /* ------------------------------------------------------------------ */
@@ -1035,7 +1075,26 @@ a { color: inherit; text-decoration: none; }
     cursor: pointer;
 }
 .autocomplete-item:hover { background: var(--accent-light); color: var(--accent); }
-.transactions-table .answer-row td { padding-top: 5px; padding-bottom: 5px; }
+.transactions-table .group-row td,
+.transactions-table .question-row td,
+.transactions-table .answer-row td { padding-top: 0; padding-bottom: 0; line-height: 1.25; }
+
+/* Entity theming — distinct background, color, border accent and hover filter */
+.group-row    { background: var(--group-bg); }
+.question-row { background: var(--question-bg); }
+.answer-row   { background: var(--answer-bg); }
+
+.group-row > td:first-child    { border-left: 3px solid var(--group-accent); }
+.question-row > td:first-child { border-left: 3px solid var(--question-accent); }
+.answer-row > td:first-child   { border-left: 3px solid var(--answer-accent); }
+
+.group-row > td:first-child    { color: var(--group-ink);    font-weight: 600; }
+.question-row > td:first-child { color: var(--question-ink); font-weight: 600; }
+.answer-row > td:first-child   { color: var(--answer-ink);   font-weight: 600; }
+
+.group-row:hover,
+.question-row:hover,
+.answer-row:hover { filter: brightness(0.96) saturate(1.1); }
 .table-empty { text-align: center; color: var(--ink-muted); }
 
 /* Modal */
