@@ -321,6 +321,9 @@ def get_all_groups(user_id):
     for g in groups:
         children.setdefault(g["parent_id"], []).append(g)
 
+    for g in groups:
+        g["has_children"] = bool(children.get(g["id"]))
+
     ordered = []
 
     def walk(parent_id, depth):

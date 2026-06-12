@@ -20,6 +20,12 @@
               {% endif %}
             {% endwith %}
 
+            <div class="autocomplete-wrap">
+                <input type="search" id="groupFilter" class="form-input"
+                       placeholder="Filter by name…" autocomplete="off">
+                <ul class="autocomplete-dropdown" id="acDropdown" hidden></ul>
+            </div>
+
             <table class="transactions-table">
                 <thead>
                     <tr>
@@ -32,17 +38,22 @@
                 <tbody>
                     {% for group in groups %}
                     <tr class="group-row" data-group-id="{{ group.id }}"
-                        data-parent-id="{{ group.parent_id if group.parent_id is not none else '' }}">
+                        data-parent-id="{{ group.parent_id if group.parent_id is not none else '' }}"
+                        data-name="{{ group.name }}">
                         <td>{% for _ in range(group.depth) %}<span class="tree-indent"></span>{% endfor %}{% if group.depth %}<span class="tree-branch">└</span>{% endif %}<button type="button" class="tree-toggle" hidden aria-label="Toggle child groups">▼</button>{{ group.name }}</td>
                         <td>{{ group.description or '—' }}</td>
                         <td>{{ group.num_of_questions }}</td>
                         <td class="actions-col">
+                            {% if group.num_of_questions == 0 %}
                             <button type="button" class="btn-add-child"
                                     data-parent-id="{{ group.id }}"
                                     data-parent-name="{{ group.name }}">+ Child</button>
+                            {% endif %}
+                            {% if not group.has_children %}
                             <button type="button" class="btn-add-question"
                                     data-group-id="{{ group.id }}"
                                     data-group-name="{{ group.name }}">+ Question</button>
+                            {% endif %}
                             <a href="{{ url_for('edit_group', id=group.id) }}" class="btn-edit">Edit</a>
                             <form method="POST" action="/groups/{{ group.id }}/delete" class="form-inline"
                                   onsubmit="return confirm('Delete this group and all its questions?')">
@@ -253,6 +264,53 @@ document.querySelectorAll('form[action*="/delete"]').forEach(function (f) {
     f.addEventListener('submit', function () {
         sessionStorage.setItem('groupsScrollY', window.scrollY);
     });
+});
+
+// ---- Filter groups by name (with autocomplete suggestions) ---- //
+var filterInput = document.getElementById('groupFilter');
+var acDropdown  = document.getElementById('acDropdown');
+
+var allNames = Array.from(document.querySelectorAll('.group-row'))
+                    .map(function (row) { return row.dataset.name; });
+
+function filterRows(q) {
+    var lower = q.toLowerCase();
+    document.querySelectorAll('.group-row').forEach(function (row) {
+        row.hidden = lower !== '' &&
+            row.dataset.name.toLowerCase().indexOf(lower) === -1;
+    });
+}
+
+function renderSuggestions(q) {
+    acDropdown.innerHTML = '';
+    if (!q) { acDropdown.hidden = true; return; }
+    var lower   = q.toLowerCase();
+    var matches = allNames.filter(function (n) { return n.toLowerCase().indexOf(lower) !== -1; });
+    if (!matches.length) { acDropdown.hidden = true; return; }
+    matches.forEach(function (name) {
+        var li = document.createElement('li');
+        li.className = 'autocomplete-item';
+        li.textContent = name;
+        li.addEventListener('mousedown', function (e) {
+            e.preventDefault();
+            filterInput.value = name;
+            filterRows(name);
+            acDropdown.hidden = true;
+        });
+        acDropdown.appendChild(li);
+    });
+    acDropdown.hidden = false;
+}
+
+filterInput.addEventListener('input', function () {
+    filterRows(this.value);
+    renderSuggestions(this.value);
+});
+filterInput.addEventListener('blur', function () {
+    setTimeout(function () { acDropdown.hidden = true; }, 150);
+});
+filterInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { acDropdown.hidden = true; this.value = ''; filterRows(''); }
 });
 </script>
 
