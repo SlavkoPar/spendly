@@ -1,0 +1,119 @@
+[
+  {
+    "id": 5,
+    "user_id": 1,
+    "name": "Sale",
+    "description": null,
+    "num_of_questions": 0,
+    "created_at": "2026-06-12 06:31:59",
+    "parent_id": null
+  },
+  {
+    "id": 8,
+    "user_id": 1,
+    "name": "TV",
+    "description": null,
+    "num_of_questions": 0,
+    "created_at": "2026-06-12 06:39:20",
+    "parent_id": 5
+  },
+  {
+    "id": 9,
+    "user_id": 1,
+    "name": "Packages",
+    "description": null,
+    "num_of_questions": 0,
+    "created_at": "2026-06-12 07:50:58",
+    "parent_id": 5
+  },
+  {
+    "id": 10,
+    "user_id": 1,
+    "name": "Mobile phones",
+    "description": null,
+    "num_of_questions": 0,
+    "created_at": "2026-06-12 07:51:27",
+    "parent_id": 5
+  },
+  {
+    "id": 12,
+    "user_id": 1,
+    "name": "Tablets",
+    "description": null,
+    "num_of_questions": 0,
+    "created_at": "2026-06-12 07:51:57",
+    "parent_id": 5
+  },
+  {
+    "id": 13,
+    "user_id": 1,
+    "name": "Children watches",
+    "description": null,
+    "num_of_questions": 0,
+    "created_at": "2026-06-12 07:52:31",
+    "parent_id": 5
+  },
+  {
+    "id": 15,
+    "user_id": 1,
+    "name": "Smart watches",
+    "description": null,
+    "num_of_questions": 0,
+    "created_at": "2026-06-12 07:53:10",
+    "parent_id": 5
+  },
+  {
+    "id": 16,
+    "user_id": 1,
+    "name": "Head Phones",
+    "description": null,
+    "num_of_questions": 0,
+    "created_at": "2026-06-12 07:53:45",
+    "parent_id": 5
+  },
+  {
+    "id": 17,
+    "user_id": 1,
+    "name": "Technical support",
+    "description": null,
+    "num_of_questions": 0,
+    "created_at": "2026-06-12 07:54:11",
+    "parent_id": null
+  },
+  {
+    "id": 20,
+    "user_id": 1,
+    "name": "TV",
+    "description": null,
+    "num_of_questions": 0,
+    "created_at": "2026-06-12 07:56:41",
+    "parent_id": 17
+  },
+  {
+    "id": 21,
+    "user_id": 1,
+    "name": "Chargers",
+    "description": null,
+    "num_of_questions": 0,
+    "created_at": "2026-06-12 07:57:19",
+    "parent_id": 17
+  },
+  {
+    "id": 22,
+    "user_id": 1,
+    "name": "Remote controllers",
+    "description": null,
+    "num_of_questions": 2,
+    "created_at": "2026-06-12 07:57:54",
+    "parent_id": 20
+  },
+  {
+    "id": 23,
+    "user_id": 1,
+    "name": "Mobile phones",
+    "description": null,
+    "num_of_questions": 0,
+    "created_at": "2026-06-12 07:58:39",
+    "parent_id": 17
+  }
+]

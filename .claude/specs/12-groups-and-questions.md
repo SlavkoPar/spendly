@@ -30,6 +30,7 @@
 | Column | Type | Constraints |
 | --- | --- | --- |
 | id | INTEGER | Primary key, autoincrement |
+| parent_group_id | INTEGER | Foreign key → groups.id |
 | user_id | INTEGER | Foreign key → users.id, not null |
 | name | TEXT | Not null |
 | description | TEXT | Nullable |

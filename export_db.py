@@ -9,7 +9,7 @@ import sqlite3
 
 DB_PATH     = os.path.join(os.path.dirname(__file__), "spendly.db")
 EXPORT_DIR  = os.path.join(os.path.dirname(__file__), "database", "export")
-TABLES      = ["groups", "questions", "answers"]
+TABLES      = ["groups", "questions", "answers", "question_answers"]
 
 
 def export_table(conn, table):

@@ -1,0 +1,345 @@
+{
+  "Workspace":  "DEMO",
+  "Categories": [
+    {
+      "Id": "MTS",
+      "Title": "Mts",
+      "Kind": 2,
+      "Categories": [
+        {
+          "Id": "SALE",
+          "Title": "Sale",
+          "Header": "Zainteresovani ste za kupovinu",
+          "Kind": 2,
+          "Categories": [
+            {
+              "Id": "PACKAGES",
+              "Title": "Packages and services",
+              "Header": "h2",
+              "Kind": 2
+            },
+            {
+              "Id": "TEL_TV",
+              "Title": "Phones, TV, additional equipment",
+              "Header": "h3",
+              "Kind": 2,
+              "Categories": [
+                {
+                  "Id": "MOBILE",
+                  "Title": "Mobile phones, tablets, modems, trackers",
+                  "Header": "Izaberite tip uređaja za koji ste zainteresovani",
+                  "Kind": 2,
+                  "Categories": [
+                    {
+                      "Id": "PHONES",
+                      "Title": "Phones",
+                      "Link": "/knowledge/categories/PHONES_null",
+                      "Header": "h4",
+                      "Kind": 2
+                    },
+                    {
+                      "Id": "TABLETS",
+                      "Title": "Tablets and modems",
+                      "Link": "/knowledge/categories/TABLETS_null",
+                      "Header": "h5",
+                      "Kind": 2
+                    },
+                    {
+                      "Id": "CHILDRENWATCHES",
+                      "Title": "Children watches",
+                      "Link": "/knowledge/categories/CHILDRENWATCHES_null",
+                      "Header": "h6",
+                      "Kind": 2
+                    },
+                    {
+                      "Id": "TRACKERS",
+                      "Title": "Trackers",
+                      "Link": "/knowledge/categories/TRACKERS_null",
+                      "Header": "h7",
+                      "Kind": 2
+                    }
+                  ]
+                },
+                {
+                  "Id": "TELEVISIONS",
+                  "Title": "Televisions, remote controllers, smart watches, headphones, chargers",
+                  "Header": "h8",
+                  "Kind": 2,
+                  "Categories": [
+                    {
+                      "Id": "TV",
+                      "Title": "Televisions",
+                      "Link": "/knowledge/categories/TV_null",
+                      "Header": "Izaberite tip uređaja",
+                      "Kind": 2
+                    },
+                    {
+                      "Id": "SMARTWATCHES",
+                      "Title": "Smart watches",
+                      "Link": "/knowledge/categories/SMARTWATCHES_null",
+                      "Header": "h9",
+                      "Kind": 2
+                    },
+                    {
+                      "Id": "HEADPHONES",
+                      "Title": "Head Phones",
+                      "Link": "/knowledge/categories/HEADPHONES_null",
+                      "Header": "",
+                      "Kind": 2
+                    },
+                    {
+                      "Id": "CHARGERS",
+                      "Title": "Chargers",
+                      "Link": "/knowledge/categories/CHARGERS_null",
+                      "Header": "",
+                      "Kind": 2,
+                      "Questions": [
+                        {
+                          "Title": "How long will my charger last?",
+                          "Id": "qqqqqq201",
+                          "AssignedAnswers": [
+                            {
+                              "TopId": "MTS",
+                              "id": "aaaaaa901"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "Id": "REMOTECTRLS",
+                      "Title": "Remote controllers",
+                      "Link": "/knowledge/categories/REMOTECTRLS_null",
+                      "Header": "",
+                      "Kind": 2,
+                      "Questions": [
+                        {
+                          "Title": "Remote controller doesn't work, let us put some words to see renderening in ChatBot Dlg",
+                          "Id": "qqqqqq111",
+                          "AssignedAnswers": [
+                            {
+                                "TopId": "MTS",
+                                "Id": "aaaaaa111"
+                            },
+                            {
+                              "TopId": "MTS",
+                              "id": "aaaaaa112"
+                            },
+                            {
+                              "TopId": "MTS",
+                              "id": "aaaaaa113"
+                            },
+                            {
+                                "TopId": "MTS",
+                                "id": "aaaaaa114"
+                            }
+                          ],
+                          "RelatedFilters": [
+                            {
+                              "Filter": "Branch offices"
+                            }
+                          ]
+                        },
+                        {
+                          "Title": "Branch offices",
+                          "Id": "qqqqqq112",
+                          "AssignedAnswers": [
+                            {
+                              "TopId": "MTS",
+                              "id": "aaaaaa114"
+                            }
+                          ]
+                        },
+                        {
+                          "Title": "Nothing works as expected?",
+                          "Id": "qqqqqq113",
+                          "AssignedAnswers": [
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Id": "PLAYSTATION",
+                  "Title": "Playstation, ostala dodatna oprema",
+                  "Header": "",
+                  "Kind": 2
+                },
+                {
+                  "Id": "SMARTHOME",
+                  "Title": "Smart home - Sijalice, utičnice, kamere, senzori, releji",
+                  "Header": "",
+                  "Kind": 2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "Id": "PROBLEMS",
+          "Title": "Problems and report of failures",
+          "Header": "",
+          "Kind": 2
+        },
+        {
+          "Id": "ACCOUNT",
+          "Title": "Accounts",
+          "Header": "",
+          "Kind": 2
+        },
+        {
+          "Id": "ROMING",
+          "Title": "Roming",
+          "Header": "",
+          "Kind": 2
+        }
+      ]
+    },
+    {
+      "Id": "PRODAJA",
+      "Title": "Prodaja",
+      "Kind": 2,
+      "Categories": [
+        {
+          "Id": "INTERNET",
+          "Title": "Internet",
+          "Kind": 3,
+          "Categories": [
+            {
+              "Id": "CLOUD",
+              "Title": "Cloud",
+              "Questions": [
+                { "Title": "Zaboravili ste pravila za naziv domena?" },
+                { "Title": "Ko može da registruje internacionalni domen (.com, .net, .org, .info…)?" },
+                { "Title": "Da li je moguća rezervacija domena pre uplate?" },
+                { "Title": "Da li prilikom registracije domena omogućavate uslugu DNS parking domena?" },
+                { "Title": "Želim da postanem reseller domena i cPanel hosting paketa" },
+                { "Title": "Ko sve može da registruje .СРБ domen?" },
+                { "Title": "Da li mogu da koristim email na svom ćiriličnom domenu?" }
+              ]
+            },
+            {
+              "Id": "DOMAIN",
+              "Title": "Domain",
+              "Questions": [
+                { "Title": "Domain 11" },
+                { "Title": "Domain 12" },
+                { "Title": "Domain 13" },
+                { "Title": "Domain 14" },
+                { "Title": "Domain 15" },
+                { "Title": "Domain 16" },
+                { "Title": "Domain 17" },
+                { "Title": "Domain 18" },
+                { "Title": "Domain 19" },
+                { "Title": "Domain 20" },
+                { "Title": "Domain 21" },
+                { "Title": "Domain 22" },
+                { "Title": "Domain 23" },
+                { "Title": "Domain 24" },
+                { "Title": "Domain 25" }
+              ]
+            },
+            {
+              "Id": "WEB",
+              "Title": "Web hosting",
+              "Questions": []
+            }
+          ]
+        },
+        {
+          "Id": "TELEVIZIJA",
+          "Title": "Televizija",
+          "Kind": 3,
+          "Categories": [
+            {
+              "Id": "INSTALATION",
+              "Title": "Instalacija",
+              "Questions": [
+                { "Title": "Kako da povežem EON Smart Box?" },
+                { "Title": "Kako da preimenujem EON Smart Box?" },
+                { "Title": "Kako da uparim EON daljinski upravljač i EON" },
+                { "Title": "Kako da povežem digitalni prijemnik D3miniSmart Box?" }
+              ]
+            },
+            {
+              "Id": "USAGE",
+              "Title": "Usage",
+              "Kind": 3,
+              "Questions": [
+                {
+                  "Title": "Remote controller of EON smart box-a, doesn't work"
+                },
+                { "Title": "Podešavanje pozicije ekrana na EON smart box-ukomande" },
+                { "Title": "Podešavanje i promena jezika titla na EON smart box-u" },
+                { "Title": "Podešavanje zvuka na EON smart box-u" },
+                { "Title": "Pokvario mi se D3mini daljinski" },
+                { "Title": "Changed bateries, but it still doesn't work" },
+                { "Title": "Dajte mi listu poslovnica (ne standova)" },
+                {
+                  "Title": "Nothing works and no one knows why"
+                }
+              ]
+            },
+            {
+              "Id": "CHANEL-INFO",
+              "Title": "Informacije o kanalima",
+              "Kind": 3,
+              "Questions": [
+                { "Title": "Programski vodič i pregled TV kanala na EON smart boksu" },
+                { "Title": "Kako da koristim TV unazad na EON smart box-u?" },
+                { "Title": "Roditeljska kontrola i promena PIN kod-a na EON smart boksu" },
+                { "Title": "Kako da blokiram kanal?" },
+                { "Title": "Kako da koristim roditeljsku kontrolu?" }
+              ]
+            },
+            {
+              "Id": "VIDEO",
+              "Title": "Video klub",
+              " ": [ "MTS", "SBB", "A1", "YETTEL" ],
+              "Questions": [
+                { "Title": "Napravi liste omiljenih TV sadržaja i kanala na EON Smart Boxu" },
+                { "Title": "Glasovna pretraga filmova, kanala i sadržaja EON daljinskim upravljačem" },
+                { "Title": "Gledaj Pickbox" }
+              ]
+            },
+            {
+              "Id": "TV-UNAZAD",
+              "Title": "TV Unazad",
+              "Questions": [
+                { "Title": "Kako da koristim TV unazad?" }
+              ]
+            }
+          ]
+        },
+        {
+          "Id": "USLUGE",
+          "Title": "Ostale usluge",
+          "Questions": [
+            {
+              "Title": "Does you play often?"
+            }
+          ]
+        },
+        {
+          "Id": "WANTED",
+          "Title": "Najtraženije teme",
+          "Questions": [
+            { "Title": "Promeni ime i lozinku svoje WiFi mreže Cisco EPC" },
+            { "Title": "Kako da podnesem zahtev za prenos broja u SBB mrežu?" }
+          ]
+        }
+      ]
+    },
+    {
+      "Id": "TECHNICAL",
+      "Title": "Technical Support",
+      "Kind": 2
+    },
+    {
+      "Id": "INFO",
+      "Title": "Information",
+      "Kind": 2
+    }
+  ]
+}

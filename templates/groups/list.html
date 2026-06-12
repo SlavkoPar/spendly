@@ -31,8 +31,9 @@
                 </thead>
                 <tbody>
                     {% for group in groups %}
-                    <tr class="group-row">
-                        <td>{% for _ in range(group.depth) %}<span class="tree-indent"></span>{% endfor %}{% if group.depth %}<span class="tree-branch">└</span>{% endif %}{{ group.name }}</td>
+                    <tr class="group-row" data-group-id="{{ group.id }}"
+                        data-parent-id="{{ group.parent_id if group.parent_id is not none else '' }}">
+                        <td>{% for _ in range(group.depth) %}<span class="tree-indent"></span>{% endfor %}{% if group.depth %}<span class="tree-branch">└</span>{% endif %}<button type="button" class="tree-toggle" hidden aria-label="Toggle child groups">▼</button>{{ group.name }}</td>
                         <td>{{ group.description or '—' }}</td>
                         <td>{{ group.num_of_questions }}</td>
                         <td class="actions-col">
@@ -132,6 +133,49 @@
 })();
 
 var addModal = document.getElementById('addModal');
+
+// ---- Expand / collapse child groups ---- //
+(function () {
+    var rows        = Array.from(document.querySelectorAll('.group-row'));
+    var childrenMap = {};
+    rows.forEach(function (row) {
+        var pid = row.dataset.parentId || '';
+        (childrenMap[pid] = childrenMap[pid] || []).push(row);
+    });
+
+    function directChildren(id) { return childrenMap[id] || []; }
+
+    // Recursively show/hide descendants. When showing, a collapsed child
+    // keeps its own descendants hidden.
+    function setDescendantsVisible(id, visible) {
+        directChildren(id).forEach(function (child) {
+            child.hidden = !visible;
+            var childId = child.dataset.groupId;
+            if (visible) {
+                if (child.dataset.expanded === 'true') {
+                    setDescendantsVisible(childId, true);
+                }
+            } else {
+                setDescendantsVisible(childId, false);
+            }
+        });
+    }
+
+    rows.forEach(function (row) {
+        var id     = row.dataset.groupId;
+        var toggle = row.querySelector('.tree-toggle');
+        if (!directChildren(id).length) return;   // leaf — no toggle
+
+        toggle.hidden = false;
+        row.dataset.expanded = 'true';
+        toggle.addEventListener('click', function () {
+            var expanded = row.dataset.expanded === 'true';
+            row.dataset.expanded = expanded ? 'false' : 'true';
+            toggle.textContent   = expanded ? '▶' : '▼';
+            setDescendantsVisible(id, !expanded);
+        });
+    });
+})();
 
 var addModalTitle = document.getElementById('addModalTitle');
 var parentSelect  = document.getElementById('add-parent');
